@@ -4,9 +4,5 @@
     "api/mcp.ts": {
       "maxDuration": 60
     }
-  },
-  "env": {
-    "APPSTLE_API_BASE": "@appstle_api_base",
-    "APPSTLE_API_KEY": "@appstle_api_key"
   }
 }
