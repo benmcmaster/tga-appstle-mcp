@@ -6,6 +6,39 @@ import { logger } from '../src/logger.js';
 // Create transport instance
 const transport = new VercelMcpTransport(simpleServer);
 
+// Authentication result type
+interface AuthResult {
+  success: boolean;
+  error?: string;
+}
+
+// Authenticate incoming requests using API key
+function authenticateRequest(req: VercelRequest): AuthResult {
+  const expectedApiKey = process.env.MCP_API_KEY;
+  
+  if (!expectedApiKey) {
+    return { success: false, error: 'MCP_API_KEY not configured' };
+  }
+
+  // Check Authorization header (Bearer token)
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return { success: false, error: 'Missing Authorization header' };
+  }
+
+  if (!authHeader.startsWith('Bearer ')) {
+    return { success: false, error: 'Authorization header must use Bearer token format' };
+  }
+
+  const providedApiKey = authHeader.substring(7); // Remove "Bearer " prefix
+  
+  if (providedApiKey !== expectedApiKey) {
+    return { success: false, error: 'Invalid API key' };
+  }
+
+  return { success: true };
+}
+
 // Main handler function
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   const requestId = logger.generateRequestId();
@@ -20,6 +53,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       userAgent: req.headers['user-agent'],
       origin: req.headers.origin,
     });
+
+    // Check authentication before processing any requests (except OPTIONS)
+    if (req.method !== 'OPTIONS') {
+      const authResult = authenticateRequest(req);
+      if (!authResult.success) {
+        logger.warn('Authentication failed', {
+          requestId,
+          reason: authResult.error,
+          userAgent: req.headers['user-agent'],
+        });
+        
+        res.status(401).json({
+          jsonrpc: '2.0',
+          id: null,
+          error: {
+            code: -32001,
+            message: 'Unauthorized',
+            data: authResult.error,
+          },
+        });
+        return;
+      }
+      
+      logger.debug('Authentication successful', { requestId });
+    }
 
     // Set CORS headers
     const origin = req.headers.origin;
