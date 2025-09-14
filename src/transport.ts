@@ -215,8 +215,9 @@ export class VercelMcpTransport {
       result: {
         capabilities,
         serverInfo: {
-          name: 'appstle-mcp-server',
-          version: '1.0.0'
+          name: 'Appstle Subscription Management',
+          version: '1.0.0',
+          description: 'MCP server for managing Shopify subscription contracts via Appstle API. Provides tools to view, skip, and manage customer subscriptions and billing attempts.'
         }
       }
     };

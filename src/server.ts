@@ -12,7 +12,7 @@ interface ServerConfig {
 }
 
 // Create and configure the MCP server
-export function createMcpServer(config: ServerConfig = { name: 'appstle-mcp-server', version: '1.0.0' }): McpServer {
+export function createMcpServer(config: ServerConfig = { name: 'Appstle Subscription Management', version: '1.0.0' }): McpServer {
   const server = new McpServer(config);
 
   try {
