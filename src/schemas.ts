@@ -85,7 +85,7 @@ const PastOrderSchema = z.object({
 export const ListPastOrdersOutputSchema = z.object({
   past: z.array(PastOrderSchema),
   page: z.number().int().min(0),
-  size: z.number().int().min(1),
+  size: z.number().int(), // Removed min validation - size can be 0 if no results
   has_more: z.boolean(),
 });
 

@@ -36,14 +36,31 @@ function createTool<TInput, TOutput>(
   handler: ToolHandler<TInput, TOutput>
 ): (input: unknown, requestId: string) => Promise<TOutput> {
   return async (input: unknown, requestId: string): Promise<TOutput> => {
-    // Validate input
-    const validatedInput = inputSchema.parse(input);
-    
-    // Execute handler
-    const result = await handler(validatedInput, requestId);
-    
-    // Validate output
-    return outputSchema.parse(result);
+    try {
+      // Validate input
+      logger.debug('Validating input for tool', { requestId, rawInput: JSON.stringify(input) });
+      const validatedInput = inputSchema.parse(input);
+      logger.debug('Input validation successful', { requestId, validatedInput: JSON.stringify(validatedInput) });
+      
+      // Execute handler
+      const result = await handler(validatedInput, requestId);
+      
+      // Validate output
+      logger.debug('Validating output for tool', { requestId, rawOutput: JSON.stringify(result) });
+      const validatedOutput = outputSchema.parse(result);
+      logger.debug('Output validation successful', { requestId });
+      
+      return validatedOutput;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        logger.error('Schema validation error', { 
+          requestId, 
+          validationErrors: JSON.stringify(error.errors),
+          rawInput: JSON.stringify(input)
+        });
+      }
+      throw error;
+    }
   };
 }
 
