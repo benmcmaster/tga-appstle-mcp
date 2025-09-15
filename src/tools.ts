@@ -410,16 +410,16 @@ export function createTools(appstleClient: AppstleClient) {
           responseStructure: JSON.stringify(appstle, null, 2),
         });
         
-        const result = mapSkipResponse(appstle, false);
-        
-        logger.info('Successfully unskipped order', {
-          requestId,
-          tool: 'unskip_order',
-          orderId: result.order_id,
-          billingDate: result.billing_date,
-        });
-        
-        return result;
+        // Temporary debug - return raw API response to see structure
+        return {
+          _debug_raw_response: appstle,
+          _debug_response_keys: Object.keys(appstle || {}),
+          _debug_response_type: typeof appstle,
+          _debug_input: {
+            order_id: input.order_id,
+            subscription_contract_id: input.subscription_contract_id
+          }
+        } as any;
       } catch (error) {
         if (error instanceof AppstleError) {
           logger.error('Appstle API error unskipping order', {

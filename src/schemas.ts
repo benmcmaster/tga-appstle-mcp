@@ -129,13 +129,17 @@ export const UnskipOrderInputSchema = z.object({
 });
 
 export const UnskipOrderOutputSchema = z.object({
-  order_id: z.number().int().positive(), // This is the 'id' field from Appstle API
-  billing_attempt_ref: z.string().optional(), // This is 'billingAttemptId' from API
-  shopify_order_id: z.number().int().optional(), // This is 'orderId' from API
+  order_id: z.number().int().positive().optional(), // Temporary optional for debug
+  billing_attempt_ref: z.string().optional(),
+  shopify_order_id: z.number().int().optional(),
   order_name: z.string().optional(),
-  billing_date: z.string().datetime(),
-  status: z.string(),
-  message: z.string().default('Order unskipped'),
+  billing_date: z.string().datetime().optional(), // Temporary optional for debug
+  status: z.string().optional(), // Temporary optional for debug
+  message: z.string().default('Order unskipped').optional(),
+  _debug_raw_response: z.any().optional(), // Temporary debug field
+  _debug_response_keys: z.array(z.string()).optional(),
+  _debug_response_type: z.string().optional(),
+  _debug_input: z.any().optional(),
 });
 
 // Export error schema
