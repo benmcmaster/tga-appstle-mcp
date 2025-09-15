@@ -136,7 +136,6 @@ export const UnskipOrderOutputSchema = z.object({
   billing_date: z.string().datetime(),
   status: z.string(),
   message: z.string().default('Order unskipped'),
-  _debug_note: z.string().optional(), // Temporary debug field
 });
 
 // Export error schema

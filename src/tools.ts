@@ -410,16 +410,15 @@ export function createTools(appstleClient: AppstleClient) {
           responseStructure: JSON.stringify(appstle, null, 2),
         });
         
-        // Handle empty API response by creating a reasonable response
+        // Handle empty API response - this likely indicates failure
         if (!appstle || Object.keys(appstle).length === 0) {
-          // If API returns empty object, create a minimal valid response
-          return {
-            order_id: input.order_id,
-            status: 'UNSKIPPED', // Assume success if no error was thrown
-            billing_date: new Date().toISOString(), // Use current timestamp as fallback
-            message: 'Order unskipped - API returned empty response',
-            _debug_note: 'API returned empty object, created fallback response'
-          };
+          // Empty response likely means the operation failed silently
+          throw new AppstleError(
+            400,
+            'Unskip Operation Failed',
+            `Unable to unskip order ${input.order_id}. This could be because: 1) Order ID does not exist, 2) Order is not in SKIPPED status, 3) Order cannot be unskipped due to timing constraints, or 4) subscription_contract_id is required but missing.`,
+            requestId
+          );
         }
         
         const result = mapSkipResponse(appstle, false);
