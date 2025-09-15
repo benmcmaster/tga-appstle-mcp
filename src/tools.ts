@@ -410,20 +410,24 @@ export function createTools(appstleClient: AppstleClient) {
           responseStructure: JSON.stringify(appstle, null, 2),
         });
         
-        // Handle empty API response - this likely indicates failure
-        if (!appstle || Object.keys(appstle).length === 0) {
-          // Empty response likely means the operation failed silently
-          const contractIdMsg = input.subscription_contract_id 
-            ? `(subscription_contract_id ${input.subscription_contract_id} was provided)`
-            : `(try adding subscription_contract_id parameter - use the same one from list_subscriptions_for_customer)`;
-          
-          throw new AppstleError(
-            400,
-            'Unskip Operation Failed',
-            `Unable to unskip order ${input.order_id} ${contractIdMsg}. The API returned an empty response, which indicates the operation failed. This could be because: 1) Order ID does not exist, 2) Order is not in SKIPPED status, 3) Order cannot be unskipped due to timing constraints, or 4) The order has already been processed/shipped.`,
-            requestId
-          );
-        }
+        // Temporary: return debug info instead of processing
+        return {
+          _debug_api_call: {
+            url: `PUT /api/external/v2/subscription-billing-attempts/unskip-order/${input.order_id}`,
+            full_url: `${process.env.APPSTLE_API_BASE || 'https://subscription-admin.appstle.com'}/api/external/v2/subscription-billing-attempts/unskip-order/${input.order_id}`,
+            query_params: input.subscription_contract_id ? { subscriptionContractId: input.subscription_contract_id.toString() } : {},
+            headers_sent: {
+              'X-API-Key': '***hidden***',
+              'Content-Type': 'application/json',
+              'Accept': '*/*'
+            },
+            order_id_used: input.order_id,
+            subscription_contract_id_used: input.subscription_contract_id,
+            api_response_empty: !appstle || Object.keys(appstle).length === 0,
+            api_response_keys: Object.keys(appstle || {}),
+            raw_response: appstle
+          }
+        } as any;
         
         const result = mapSkipResponse(appstle, false);
         

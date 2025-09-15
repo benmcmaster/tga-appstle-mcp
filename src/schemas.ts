@@ -129,13 +129,14 @@ export const UnskipOrderInputSchema = z.object({
 });
 
 export const UnskipOrderOutputSchema = z.object({
-  order_id: z.number().int().positive(),
+  order_id: z.number().int().positive().optional(),
   billing_attempt_ref: z.string().optional(),
   shopify_order_id: z.number().int().optional(),
   order_name: z.string().optional(),
-  billing_date: z.string().datetime(),
-  status: z.string(),
-  message: z.string().default('Order unskipped'),
+  billing_date: z.string().datetime().optional(),
+  status: z.string().optional(),
+  message: z.string().default('Order unskipped').optional(),
+  _debug_api_call: z.any().optional(), // Temporary debug field
 });
 
 // Export error schema
