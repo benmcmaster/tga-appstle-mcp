@@ -47,9 +47,9 @@ const OrderItemSchema = z.object({
 });
 
 const UpcomingOrderSchema = z.object({
-  billing_attempt_id: z.number().int().positive(),
-  billing_attempt_ref: z.string().optional(),
-  order_id: z.number().int().optional(),
+  order_id: z.number().int().positive(), // This is the 'id' field from Appstle API, not 'billingAttemptId'
+  billing_attempt_ref: z.string().optional(), // This is 'billingAttemptId' from API (usually null)
+  shopify_order_id: z.number().int().optional(), // This is 'orderId' from API
   order_name: z.string().optional(),
   billing_date: z.string().datetime(),
   status: z.string(),
@@ -69,9 +69,9 @@ export const ListPastOrdersInputSchema = z.object({
 });
 
 const PastOrderSchema = z.object({
-  billing_attempt_id: z.number().int().positive(),
-  billing_attempt_ref: z.string().optional(),
-  order_id: z.number().int().optional(),
+  order_id: z.number().int().positive(), // This is the 'id' field from Appstle API, not 'billingAttemptId'
+  billing_attempt_ref: z.string().optional(), // This is 'billingAttemptId' from API (usually null)
+  shopify_order_id: z.number().int().optional(), // This is 'orderId' from API
   order_name: z.string().optional(),
   billing_date: z.string().datetime(),
   status: z.string(),
@@ -91,42 +91,42 @@ export const SkipUpcomingOrderForContractInputSchema = z.object({
 
 export const SkipUpcomingOrderForContractOutputSchema = z.object({
   skipped: z.literal(true),
-  billing_attempt_id: z.number().int().positive(),
-  billing_attempt_ref: z.string().optional(),
-  order_id: z.number().int().optional(),
+  order_id: z.number().int().positive(), // This is the 'id' field from Appstle API
+  billing_attempt_ref: z.string().optional(), // This is 'billingAttemptId' from API
+  shopify_order_id: z.number().int().optional(), // This is 'orderId' from API
   order_name: z.string().optional(),
   billing_date: z.string().datetime(),
   status: z.string(),
   message: z.string().optional(),
 });
 
-// 5. skip_billing_attempt schemas
-export const SkipBillingAttemptInputSchema = z.object({
-  billing_attempt_id: z.number().int().positive(),
+// 5. skip_order schemas
+export const SkipOrderInputSchema = z.object({
+  order_id: z.number().int().positive(), // This is the 'id' field from top-orders/past-orders
   subscription_contract_id: z.number().int().positive().optional(),
-  is_prepaid: z.boolean().default(false).optional(),
+  is_prepaid: z.boolean().default(false),
 });
 
-export const SkipBillingAttemptOutputSchema = z.object({
-  billing_attempt_id: z.number().int().positive(),
-  billing_attempt_ref: z.string().optional(),
-  order_id: z.number().int().optional(),
+export const SkipOrderOutputSchema = z.object({
+  order_id: z.number().int().positive(), // This is the 'id' field from Appstle API
+  billing_attempt_ref: z.string().optional(), // This is 'billingAttemptId' from API
+  shopify_order_id: z.number().int().optional(), // This is 'orderId' from API
   order_name: z.string().optional(),
   billing_date: z.string().datetime(),
   status: z.string(),
   message: z.string().default('Order skipped'),
 });
 
-// 6. unskip_billing_attempt schemas
-export const UnskipBillingAttemptInputSchema = z.object({
-  billing_attempt_id: z.number().int().positive(),
+// 6. unskip_order schemas
+export const UnskipOrderInputSchema = z.object({
+  order_id: z.number().int().positive(), // This is the 'id' field from top-orders/past-orders
   subscription_contract_id: z.number().int().positive().optional(),
 });
 
-export const UnskipBillingAttemptOutputSchema = z.object({
-  billing_attempt_id: z.number().int().positive(),
-  billing_attempt_ref: z.string().optional(),
-  order_id: z.number().int().optional(),
+export const UnskipOrderOutputSchema = z.object({
+  order_id: z.number().int().positive(), // This is the 'id' field from Appstle API
+  billing_attempt_ref: z.string().optional(), // This is 'billingAttemptId' from API
+  shopify_order_id: z.number().int().optional(), // This is 'orderId' from API
   order_name: z.string().optional(),
   billing_date: z.string().datetime(),
   status: z.string(),
@@ -149,11 +149,11 @@ export type ListPastOrdersOutput = z.infer<typeof ListPastOrdersOutputSchema>;
 export type SkipUpcomingOrderForContractInput = z.infer<typeof SkipUpcomingOrderForContractInputSchema>;
 export type SkipUpcomingOrderForContractOutput = z.infer<typeof SkipUpcomingOrderForContractOutputSchema>;
 
-export type SkipBillingAttemptInput = z.infer<typeof SkipBillingAttemptInputSchema>;
-export type SkipBillingAttemptOutput = z.infer<typeof SkipBillingAttemptOutputSchema>;
+export type SkipOrderInput = z.infer<typeof SkipOrderInputSchema>;
+export type SkipOrderOutput = z.infer<typeof SkipOrderOutputSchema>;
 
-export type UnskipBillingAttemptInput = z.infer<typeof UnskipBillingAttemptInputSchema>;
-export type UnskipBillingAttemptOutput = z.infer<typeof UnskipBillingAttemptOutputSchema>;
+export type UnskipOrderInput = z.infer<typeof UnskipOrderInputSchema>;
+export type UnskipOrderOutput = z.infer<typeof UnskipOrderOutputSchema>;
 
 export type ErrorOutput = z.infer<typeof ErrorSchema>;
 

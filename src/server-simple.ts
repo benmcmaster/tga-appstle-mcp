@@ -19,7 +19,7 @@ export function createSimpleServer() {
         return [
           {
             name: 'list_subscriptions_for_customer',
-            description: 'Retrieve subscription contracts for a Shopify customer by numeric customer ID',
+            description: 'STEP 1: Use this tool when customers ask about their subscription contracts, active subscriptions, or subscription status. Look for phrases like "my subscriptions", "what subscriptions do I have", "subscription status", "active plans", or "membership details". PREREQUISITE: You must have the customer\'s numeric Shopify Customer ID (not a GID). If missing, ask the customer to provide it. RETURNS: This tool returns subscription details including subscription_contract_id values needed for all other order management tools.',
             inputSchema: {
               type: 'object',
               properties: {
@@ -38,14 +38,14 @@ export function createSimpleServer() {
           },
           {
             name: 'list_upcoming_orders',
-            description: 'List upcoming billing attempts/orders for a subscription contract',
+            description: 'STEP 2: Use this tool when customers ask about upcoming orders, next deliveries, or scheduled shipments. Look for phrases like "when is my next order", "upcoming deliveries", "next shipment", "future orders", or "what\'s coming next". PREREQUISITE: You must have subscription_contract_id from list_subscriptions_for_customer (STEP 1). If missing, call STEP 1 first. RETURNS: List of upcoming orders, each with an order_id field (use this for skip_order tool) and order details for customer confirmation.',
             inputSchema: {
               type: 'object',
               properties: {
                 subscription_contract_id: {
                   type: 'integer',
                   minimum: 1,
-                  description: 'Numeric Appstle/Shopify Contract ID as required by top-orders?contractId=...'
+                  description: 'Subscription contract ID from list_subscriptions_for_customer response (subscription_contract_id field)'
                 }
               },
               required: ['subscription_contract_id']
@@ -53,21 +53,33 @@ export function createSimpleServer() {
           },
           {
             name: 'list_past_orders',
-            description: 'List past billing attempts/orders for a subscription contract with pagination',
+            description: 'STEP 2: Use this tool when customers ask about order history, past deliveries, or previous shipments. Look for phrases like "order history", "past orders", "previous deliveries", "what orders have been sent", or "delivery history". PREREQUISITE: You must have subscription_contract_id from list_subscriptions_for_customer (STEP 1). If missing, call STEP 1 first. RETURNS: List of past orders with order_id field (use this for unskip_order tool if order status is SKIPPED). Use pagination for large histories.',
             inputSchema: {
               type: 'object',
               properties: {
                 subscription_contract_id: {
                   type: 'integer',
                   minimum: 1,
-                  description: 'Numeric Contract ID for past-orders?contractId=...'
+                  description: 'Subscription contract ID from list_subscriptions_for_customer response (subscription_contract_id field)'
                 },
-                page: { type: 'integer', minimum: 0, default: 0 },
-                size: { type: 'integer', minimum: 1, maximum: 100, default: 10 },
+                page: { 
+                  type: 'integer', 
+                  minimum: 0, 
+                  default: 0,
+                  description: 'Page number for pagination (0-based). Default: 0 (first page)'
+                },
+                size: { 
+                  type: 'integer', 
+                  minimum: 1, 
+                  maximum: 100, 
+                  default: 10,
+                  description: 'Number of orders per page (1-100). Default: 10 orders'
+                },
                 sort: { 
                   type: 'array', 
                   items: { type: 'string' }, 
-                  default: ['id,desc'] 
+                  default: ['id,desc'],
+                  description: 'Sort order. Default: ["id,desc"] for newest first'
                 }
               },
               required: ['subscription_contract_id']
@@ -75,34 +87,34 @@ export function createSimpleServer() {
           },
           {
             name: 'skip_upcoming_order_for_contract',
-            description: 'Skip the next upcoming billing attempt for a subscription contract',
+            description: 'STEP 3A: Use this tool when customers want to skip their NEXT upcoming order (without seeing the order details first). Look for phrases like "skip next order", "skip next delivery", "pause next shipment", "don\'t send next order", or "hold next delivery". IMPORTANT: Always confirm intent - ask "Are you sure you want to skip your next order on [date]?" PREREQUISITE: subscription_contract_id from STEP 1. ALTERNATIVE: If customer wants to see order details first, use list_upcoming_orders (STEP 2) then skip_order (STEP 3B). NEXT STEPS: Inform customer they can undo using unskip_order.',
             inputSchema: {
               type: 'object',
               properties: {
                 subscription_contract_id: {
                   type: 'integer',
                   minimum: 1,
-                  description: 'Numeric Contract ID to skip the next upcoming billing attempt.'
+                  description: 'Subscription contract ID from list_subscriptions_for_customer response (subscription_contract_id field)'
                 }
               },
               required: ['subscription_contract_id']
             }
           },
           {
-            name: 'skip_billing_attempt',
-            description: 'Skip a specific billing attempt by ID',
+            name: 'skip_order',
+            description: 'STEP 3B: Use this tool when customers want to skip a SPECIFIC order after seeing order details. Look for phrases like "skip this order", "cancel this delivery", "don\'t send order #123", or "skip the order on [date]". IMPORTANT: Always confirm intent - ask "Are you sure you want to skip the order scheduled for [date]?" PREREQUISITE: order_id from list_upcoming_orders or list_past_orders (STEP 2). Extract the "order_id" field from the order list response. NEXT STEPS: Inform customer they can reverse using unskip_order.',
             inputSchema: {
               type: 'object',
               properties: {
-                billing_attempt_id: {
+                order_id: {
                   type: 'integer',
                   minimum: 1,
-                  description: 'Numeric billing attempt id from top-orders or past-orders.'
+                  description: 'Order ID from upcoming/past orders list. NOTE: Use the "id" field from the API response, NOT the "billingAttemptId" field (which is always null).'
                 },
                 subscription_contract_id: {
                   type: 'integer',
                   minimum: 1,
-                  description: 'Optional contract id if your Appstle tenant requires it for this endpoint.'
+                  description: 'Optional: Subscription contract ID from list_subscriptions_for_customer (some Appstle tenants require this)'
                 },
                 is_prepaid: {
                   type: 'boolean',
@@ -110,27 +122,27 @@ export function createSimpleServer() {
                   description: 'Optional flag for prepaid contracts supported by Appstle.'
                 }
               },
-              required: ['billing_attempt_id']
+              required: ['order_id']
             }
           },
           {
-            name: 'unskip_billing_attempt',
-            description: 'Unskip a previously skipped billing attempt by ID',
+            name: 'unskip_order',
+            description: 'STEP 4: Use this tool when customers want to restore a previously skipped order. Look for phrases like "unskip order", "restore skipped order", "undo skip", "bring back my order", "I changed my mind about skipping", or "reactivate cancelled order". IMPORTANT: Always confirm intent - ask "Are you sure you want to restore the order for [date]?" PREREQUISITE: order_id from a SKIPPED order (use list_past_orders or list_upcoming_orders to find orders with status=SKIPPED). Extract the "order_id" field. EDGE CASE: If order was already processed/shipped, unskipping may fail.',
             inputSchema: {
               type: 'object',
               properties: {
-                billing_attempt_id: {
+                order_id: {
                   type: 'integer',
                   minimum: 1,
-                  description: 'Numeric billing attempt id to unskip.'
+                  description: 'Order ID of the skipped order to restore. NOTE: Use the "id" field from the API response, NOT the "billingAttemptId" field (which is always null).'
                 },
                 subscription_contract_id: {
                   type: 'integer',
                   minimum: 1,
-                  description: 'Optional contract id if required by your Appstle tenant.'
+                  description: 'Optional: Subscription contract ID from list_subscriptions_for_customer (some Appstle tenants require this)'
                 }
               },
-              required: ['billing_attempt_id']
+              required: ['order_id']
             }
           }
         ];

@@ -118,9 +118,9 @@ describe('mapping utilities', () => {
   describe('mapBillingAttempt', () => {
     test('should map billing attempt with items', () => {
       const attempt = {
-        id: 456789,
-        billingAttemptId: 'ba_123',
-        orderId: 789012,
+        id: 456789, // This is the main ID used for skip/unskip
+        billingAttemptId: null, // This is always null in real API responses
+        orderId: 789012, // This is the Shopify order ID
         orderName: 'Order #1001',
         billingDate: '2025-01-15T10:00:00Z',
         status: 'PENDING',
@@ -140,9 +140,9 @@ describe('mapping utilities', () => {
       const result = mapBillingAttempt(attempt);
 
       expect(result).toEqual({
-        billing_attempt_id: 456789,
-        billing_attempt_ref: 'ba_123',
-        order_id: 789012,
+        order_id: 456789, // The main ID (was billing_attempt_id)
+        billing_attempt_ref: undefined, // null becomes undefined
+        shopify_order_id: 789012, // The Shopify order ID (was order_id)
         order_name: 'Order #1001',
         billing_date: '2025-01-15T10:00:00Z',
         status: 'PENDING',
@@ -155,17 +155,19 @@ describe('mapping utilities', () => {
 
     test('should map billing attempt without items', () => {
       const attempt = {
-        id: 456789,
+        id: 456789, // The main ID
         billingDate: '2025-01-15T10:00:00Z',
         status: 'COMPLETED'
+        // billingAttemptId is missing (would be null anyway)
+        // orderId is missing (no Shopify order created yet)
       };
 
       const result = mapBillingAttempt(attempt);
 
       expect(result).toEqual({
-        billing_attempt_id: 456789,
+        order_id: 456789, // The main ID (was billing_attempt_id)
         billing_attempt_ref: undefined,
-        order_id: undefined,
+        shopify_order_id: undefined, // No Shopify order ID (was order_id)
         order_name: undefined,
         billing_date: '2025-01-15T10:00:00Z',
         status: 'COMPLETED'

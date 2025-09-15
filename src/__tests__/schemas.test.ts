@@ -2,7 +2,7 @@ import { describe, test, expect } from 'vitest';
 import {
   ListSubscriptionsForCustomerInputSchema,
   ListUpcomingOrdersInputSchema,
-  SkipBillingAttemptInputSchema,
+  SkipOrderInputSchema,
   ListSubscriptionsForCustomerOutputSchema,
 } from '../schemas.js';
 
@@ -67,26 +67,26 @@ describe('schema validation', () => {
     });
   });
 
-  describe('SkipBillingAttemptInputSchema', () => {
+  describe('SkipOrderInputSchema', () => {
     test('should validate with all optional fields', () => {
       const validInput = {
-        billing_attempt_id: 123456,
+        order_id: 123456, // This is the 'id' field from Appstle API
         subscription_contract_id: 789012,
         is_prepaid: true
       };
 
-      const result = SkipBillingAttemptInputSchema.parse(validInput);
+      const result = SkipOrderInputSchema.parse(validInput);
       expect(result).toEqual(validInput);
     });
 
     test('should apply default for is_prepaid', () => {
       const input = {
-        billing_attempt_id: 123456
+        order_id: 123456 // This is the 'id' field from Appstle API
       };
 
-      const result = SkipBillingAttemptInputSchema.parse(input);
+      const result = SkipOrderInputSchema.parse(input);
       expect(result).toEqual({
-        billing_attempt_id: 123456,
+        order_id: 123456,
         is_prepaid: false
       });
     });

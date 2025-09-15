@@ -10,10 +10,10 @@ import {
   ListPastOrdersOutputSchema,
   SkipUpcomingOrderForContractInputSchema,
   SkipUpcomingOrderForContractOutputSchema,
-  SkipBillingAttemptInputSchema,
-  SkipBillingAttemptOutputSchema,
-  UnskipBillingAttemptInputSchema,
-  UnskipBillingAttemptOutputSchema,
+  SkipOrderInputSchema,
+  SkipOrderOutputSchema,
+  UnskipOrderInputSchema,
+  UnskipOrderOutputSchema,
 } from './schemas.js';
 import {
   toSubscriptionsSummary,
@@ -48,6 +48,9 @@ function createTool<TInput, TOutput>(
 }
 
 // Tool implementations
+// Note: We use "order" terminology in tool names and descriptions for customer-facing clarity,
+// but these map to "billing attempts" in Appstle's backend API. A billing attempt represents
+// a scheduled delivery/order in the subscription lifecycle.
 export function createTools(appstleClient: AppstleClient) {
   const listSubscriptionsForCustomer = createTool(
     ListSubscriptionsForCustomerInputSchema,
@@ -252,7 +255,7 @@ export function createTools(appstleClient: AppstleClient) {
           requestId,
           tool: 'skip_upcoming_order_for_contract',
           contractId: input.subscription_contract_id,
-          billingAttemptId: result.billing_attempt_id,
+          orderId: result.order_id,
           billingDate: result.billing_date,
         });
         
@@ -286,21 +289,22 @@ export function createTools(appstleClient: AppstleClient) {
     }
   );
 
-  const skipBillingAttempt = createTool(
-    SkipBillingAttemptInputSchema,
-    SkipBillingAttemptOutputSchema,
+  // Skip a specific order (implemented as skipping a billing attempt in Appstle)
+  const skipOrder = createTool(
+    SkipOrderInputSchema,
+    SkipOrderOutputSchema,
     async (input, requestId) => {
-      logger.info('Skipping billing attempt', {
+      logger.info('Skipping order', {
         requestId,
-        tool: 'skip_billing_attempt',
-        billingAttemptId: input.billing_attempt_id,
+        tool: 'skip_order',
+        orderId: input.order_id, // This is the 'id' field from Appstle API
         contractId: input.subscription_contract_id,
         isPrepaid: input.is_prepaid,
       });
 
       try {
         const appstle = await appstleClient.skipBillingAttempt(
-          input.billing_attempt_id,
+          input.order_id, // Pass the order ID to the API (it expects the 'id' field)
           input.subscription_contract_id,
           input.is_prepaid,
           requestId
@@ -308,30 +312,30 @@ export function createTools(appstleClient: AppstleClient) {
         
         const result = mapSkipResponse(appstle, true);
         
-        logger.info('Successfully skipped billing attempt', {
+        logger.info('Successfully skipped order', {
           requestId,
-          tool: 'skip_billing_attempt',
-          billingAttemptId: result.billing_attempt_id,
+          tool: 'skip_order',
+          orderId: result.order_id,
           billingDate: result.billing_date,
         });
         
         return result;
       } catch (error) {
         if (error instanceof AppstleError) {
-          logger.error('Appstle API error skipping billing attempt', {
+          logger.error('Appstle API error skipping order', {
             requestId,
-            tool: 'skip_billing_attempt',
-            billingAttemptId: input.billing_attempt_id,
+            tool: 'skip_order',
+            orderId: input.order_id,
             statusCode: error.statusCode,
             title: error.title,
           });
           throw error;
         }
         
-        logger.error('Unexpected error skipping billing attempt', {
+        logger.error('Unexpected error skipping order', {
           requestId,
-          tool: 'skip_billing_attempt',
-          billingAttemptId: input.billing_attempt_id,
+          tool: 'skip_order',
+          orderId: input.order_id,
           error: error instanceof Error ? error.message : String(error),
         });
         
@@ -345,50 +349,51 @@ export function createTools(appstleClient: AppstleClient) {
     }
   );
 
-  const unskipBillingAttempt = createTool(
-    UnskipBillingAttemptInputSchema,
-    UnskipBillingAttemptOutputSchema,
+  // Unskip a previously skipped order (implemented as unskipping a billing attempt in Appstle)
+  const unskipOrder = createTool(
+    UnskipOrderInputSchema,
+    UnskipOrderOutputSchema,
     async (input, requestId) => {
-      logger.info('Unskipping billing attempt', {
+      logger.info('Unskipping order', {
         requestId,
-        tool: 'unskip_billing_attempt',
-        billingAttemptId: input.billing_attempt_id,
+        tool: 'unskip_order',
+        orderId: input.order_id, // This is the 'id' field from Appstle API
         contractId: input.subscription_contract_id,
       });
 
       try {
         const appstle = await appstleClient.unskipBillingAttempt(
-          input.billing_attempt_id,
+          input.order_id, // Pass the order ID to the API (it expects the 'id' field)
           input.subscription_contract_id,
           requestId
         );
         
         const result = mapSkipResponse(appstle, false);
         
-        logger.info('Successfully unskipped billing attempt', {
+        logger.info('Successfully unskipped order', {
           requestId,
-          tool: 'unskip_billing_attempt',
-          billingAttemptId: result.billing_attempt_id,
+          tool: 'unskip_order',
+          orderId: result.order_id,
           billingDate: result.billing_date,
         });
         
         return result;
       } catch (error) {
         if (error instanceof AppstleError) {
-          logger.error('Appstle API error unskipping billing attempt', {
+          logger.error('Appstle API error unskipping order', {
             requestId,
-            tool: 'unskip_billing_attempt',
-            billingAttemptId: input.billing_attempt_id,
+            tool: 'unskip_order',
+            orderId: input.order_id,
             statusCode: error.statusCode,
             title: error.title,
           });
           throw error;
         }
         
-        logger.error('Unexpected error unskipping billing attempt', {
+        logger.error('Unexpected error unskipping order', {
           requestId,
-          tool: 'unskip_billing_attempt',
-          billingAttemptId: input.billing_attempt_id,
+          tool: 'unskip_order',
+          orderId: input.order_id,
           error: error instanceof Error ? error.message : String(error),
         });
         
@@ -407,7 +412,7 @@ export function createTools(appstleClient: AppstleClient) {
     list_upcoming_orders: listUpcomingOrders,
     list_past_orders: listPastOrders,
     skip_upcoming_order_for_contract: skipUpcomingOrderForContract,
-    skip_billing_attempt: skipBillingAttempt,
-    unskip_billing_attempt: unskipBillingAttempt,
+    skip_order: skipOrder,
+    unskip_order: unskipOrder,
   };
 }

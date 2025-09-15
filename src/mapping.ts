@@ -117,10 +117,11 @@ export function toSubscriptionsSummary(appstle: {
 }
 
 // Transform Appstle billing attempt to our schema
+// NOTE: Despite confusing API naming, we use attempt.id (not attempt.billingAttemptId which is always null)
 export function mapBillingAttempt(attempt: {
-  id: number;
-  billingAttemptId?: string;
-  orderId?: number;
+  id: number; // This is the actual ID to use for skip/unskip operations
+  billingAttemptId?: string; // This is always null in practice - ignore it!
+  orderId?: number; // This is the Shopify order ID (when order is created)
   orderName?: string;
   billingDate: string;
   status: string;
@@ -142,9 +143,9 @@ export function mapBillingAttempt(attempt: {
   }
 
   const baseOrder = {
-    billing_attempt_id: attempt.id,
-    billing_attempt_ref: attempt.billingAttemptId || undefined,
-    order_id: attempt.orderId || undefined,
+    order_id: attempt.id, // The main ID used for skip/unskip operations
+    billing_attempt_ref: attempt.billingAttemptId || undefined, // Usually null
+    shopify_order_id: attempt.orderId || undefined, // Shopify order ID (when created)
     order_name: attempt.orderName || undefined,
     billing_date: attempt.billingDate,
     status: attempt.status,
@@ -204,26 +205,27 @@ export function toPastOrders(appstle: {
 }
 
 // Transform skip/unskip response
+// NOTE: Same ID field confusion applies here - appstle.id is the actual identifier
 export function mapSkipResponse(appstle: {
-  id: number;
-  billingAttemptId?: string;
-  orderId?: number;
+  id: number; // The main ID that was used for the skip/unskip operation
+  billingAttemptId?: string; // Usually null - ignore
+  orderId?: number; // Shopify order ID (when order exists)
   orderName?: string;
   billingDate: string;
   status: string;
 }, isSkip: boolean = true): {
-  billing_attempt_id: number;
+  order_id: number;
   billing_attempt_ref?: string;
-  order_id?: number;
+  shopify_order_id?: number;
   order_name?: string;
   billing_date: string;
   status: string;
   message: string;
 } {
   return {
-    billing_attempt_id: appstle.id,
+    order_id: appstle.id, // The main ID (not billingAttemptId!)
     billing_attempt_ref: appstle.billingAttemptId || undefined,
-    order_id: appstle.orderId || undefined,
+    shopify_order_id: appstle.orderId || undefined,
     order_name: appstle.orderName || undefined,
     billing_date: appstle.billingDate,
     status: appstle.status,
