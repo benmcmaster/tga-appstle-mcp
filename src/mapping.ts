@@ -182,7 +182,7 @@ export function toUpcomingOrders(appstle: Array<{
 
 // Transform Appstle past-orders response
 export function toPastOrders(appstle: {
-  content: Array<{
+  content?: Array<{
     id: number;
     billingAttemptId?: string;
     orderId?: number;
@@ -190,17 +190,19 @@ export function toPastOrders(appstle: {
     billingDate: string;
     status: string;
   }>;
-  totalElements: number;
-  size: number;
-  number: number;
+  totalElements?: number;
+  size?: number;
+  number?: number;
 }): { past: PastOrder[]; page: number; size: number; has_more: boolean } {
-  const past = appstle.content.map(attempt => mapBillingAttempt(attempt) as PastOrder);
+  // Handle missing or empty content array
+  const content = appstle.content || [];
+  const past = content.map(attempt => mapBillingAttempt(attempt) as PastOrder);
   
   return {
     past,
-    page: appstle.number,
-    size: appstle.size,
-    has_more: past.length === appstle.size && appstle.totalElements > (appstle.number + 1) * appstle.size,
+    page: appstle.number || 0,
+    size: appstle.size || past.length,
+    has_more: past.length === (appstle.size || 0) && (appstle.totalElements || 0) > ((appstle.number || 0) + 1) * (appstle.size || 0),
   };
 }
 

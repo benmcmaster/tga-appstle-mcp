@@ -188,6 +188,15 @@ export function createTools(appstleClient: AppstleClient) {
           requestId
         );
         
+        // Log the raw API response for debugging
+        logger.debug('Raw Appstle past orders response', {
+          requestId,
+          responseKeys: Object.keys(appstle),
+          hasContent: !!appstle.content,
+          contentLength: appstle.content?.length || 0,
+          responseStructure: JSON.stringify(appstle, null, 2).substring(0, 500),
+        });
+        
         const result = toPastOrders(appstle);
         
         logger.info('Successfully listed past orders', {
