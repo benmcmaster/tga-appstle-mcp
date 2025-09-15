@@ -218,30 +218,6 @@ export function createTools(appstleClient: AppstleClient) {
         
         const result = toPastOrders(appstle);
         
-        // Temporary debug info in response for troubleshooting
-        const debugInfo = {
-          inputParams: {
-            contractId: input.subscription_contract_id,
-            page: input.page,
-            size: input.size,
-            sort: input.sort
-          },
-          apiResponse: {
-            hasContent: !!appstle.content,
-            contentLength: appstle.content?.length || 0,
-            apiSize: appstle.size,
-            apiNumber: appstle.number,
-            totalElements: appstle.totalElements,
-            responseKeys: Object.keys(appstle)
-          },
-          mappedResult: {
-            pastLength: result.past.length,
-            page: result.page,
-            size: result.size,
-            hasMore: result.has_more
-          }
-        };
-        
         logger.info('Successfully listed past orders', {
           requestId,
           tool: 'list_past_orders',
@@ -250,14 +226,9 @@ export function createTools(appstleClient: AppstleClient) {
           size: result.size,
           orderCount: result.past.length,
           hasMore: result.has_more,
-          debugInfo
         });
         
-        // Include debug info in response temporarily
-        return {
-          ...result,
-          _debug: debugInfo
-        };
+        return result;
       } catch (error) {
         if (error instanceof AppstleError) {
           logger.error('Appstle API error listing past orders', {
