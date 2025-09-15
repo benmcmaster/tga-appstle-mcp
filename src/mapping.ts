@@ -181,28 +181,37 @@ export function toUpcomingOrders(appstle: Array<{
 }
 
 // Transform Appstle past-orders response
-export function toPastOrders(appstle: {
-  content?: Array<{
-    id: number;
-    billingAttemptId?: string;
-    orderId?: number;
-    orderName?: string;
-    billingDate: string;
-    status: string;
-  }>;
-  totalElements?: number;
-  size?: number;
-  number?: number;
-}): { past: PastOrder[]; page: number; size: number; has_more: boolean } {
-  // Handle missing or empty content array
-  const content = appstle.content || [];
+export function toPastOrders(appstle: any): { past: PastOrder[]; page: number; size: number; has_more: boolean } {
+  // Handle two possible response formats:
+  // 1. Paginated object: {content: [...], totalElements: N, size: 10, number: 0}
+  // 2. Direct array: [item1, item2, item3]
+  
+  let content: Array<any> = [];
+  let totalElements = 0;
+  let size = 0;
+  let pageNumber = 0;
+  
+  if (Array.isArray(appstle)) {
+    // Format 2: Direct array response
+    content = appstle;
+    totalElements = appstle.length;
+    size = appstle.length;
+    pageNumber = 0;
+  } else if (appstle && typeof appstle === 'object') {
+    // Format 1: Paginated object response
+    content = appstle.content || [];
+    totalElements = appstle.totalElements || content.length;
+    size = appstle.size || content.length;
+    pageNumber = appstle.number || 0;
+  }
+  
   const past = content.map(attempt => mapBillingAttempt(attempt) as PastOrder);
   
   return {
     past,
-    page: appstle.number || 0,
-    size: appstle.size || past.length,
-    has_more: past.length === (appstle.size || 0) && (appstle.totalElements || 0) > ((appstle.number || 0) + 1) * (appstle.size || 0),
+    page: pageNumber,
+    size: size,
+    has_more: false, // For direct array format, we can't determine if there are more pages
   };
 }
 

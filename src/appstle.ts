@@ -315,19 +315,7 @@ export class AppstleClient {
     });
   }
 
-  async getPastOrders(contractId: number, page: number = 0, size: number = 10, sort: string[] = ['id,desc'], requestId?: string): Promise<{
-    content: Array<{
-      id: number;
-      billingAttemptId?: string;
-      orderId?: number;
-      orderName?: string;
-      billingDate: string;
-      status: string;
-    }>;
-    totalElements: number;
-    size: number;
-    number: number;
-  }> {
+  async getPastOrders(contractId: number, page: number = 0, size: number = 10, sort: string[] = ['id,desc'], requestId?: string): Promise<any> {
     const query: Record<string, string> = {
       contractId: contractId.toString(),
       'pageable.page': page.toString(),
