@@ -126,7 +126,7 @@ export function createSimpleServer() {
           },
           {
             name: 'unskip_order',
-            description: 'STEP 4: Use this tool when customers want to restore a previously skipped order. Look for phrases like "unskip order", "restore skipped order", "undo skip", "bring back my order", "I changed my mind about skipping", or "reactivate cancelled order". CRITICAL WORKFLOW: 1) ALWAYS call list_past_orders IMMEDIATELY before this tool to get the current order_id of SKIPPED orders (order IDs change after each skip/unskip operation), 2) Find orders with status=SKIPPED in the fresh response, 3) Use the fresh order_id, 4) Confirm intent with customer. IMPORTANT: Never use old/cached order IDs - they become invalid after operations. Extract the "order_id" field from the fresh list_past_orders response. EDGE CASE: If order was already processed/shipped, unskipping may fail.',
+            description: 'STEP 4: Use this tool when customers want to restore a previously skipped order. Look for phrases like "unskip order", "restore skipped order", "undo skip", "bring back my order", "I changed my mind about skipping", or "reactivate cancelled order". CRITICAL WORKFLOW: 1) ALWAYS call list_past_orders IMMEDIATELY before this tool to get the current order_id of SKIPPED orders (order IDs change after each skip/unskip operation), 2) Find orders with status=SKIPPED in the fresh response, 3) Use the fresh order_id, 4) Get subscription_contract_id from list_subscriptions_for_customer (REQUIRED), 5) Confirm intent with customer. IMPORTANT: Never use old/cached order IDs - they become invalid after operations. Both order_id AND subscription_contract_id are required for unskip operations to work.',
             inputSchema: {
               type: 'object',
               properties: {
@@ -138,10 +138,10 @@ export function createSimpleServer() {
                 subscription_contract_id: {
                   type: 'integer',
                   minimum: 1,
-                  description: 'Optional: Subscription contract ID from list_subscriptions_for_customer (some Appstle tenants require this)'
+                  description: 'Required: Subscription contract ID from list_subscriptions_for_customer response. This parameter is required for unskip operations to work.'
                 }
               },
-              required: ['order_id']
+              required: ['order_id', 'subscription_contract_id']
             }
           }
         ];
