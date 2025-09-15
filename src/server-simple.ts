@@ -101,14 +101,14 @@ export function createSimpleServer() {
           },
           {
             name: 'skip_order',
-            description: 'STEP 3B: Use this tool when customers want to skip a SPECIFIC order after seeing order details. Look for phrases like "skip this order", "cancel this delivery", "don\'t send order #123", or "skip the order on [date]". IMPORTANT: Always confirm intent - ask "Are you sure you want to skip the order scheduled for [date]?" PREREQUISITE: order_id from list_upcoming_orders or list_past_orders (STEP 2). Extract the "order_id" field from the order list response. NEXT STEPS: Inform customer they can reverse using unskip_order.',
+            description: 'STEP 3B: Use this tool when customers want to skip a SPECIFIC order after seeing order details. Look for phrases like "skip this order", "cancel this delivery", "don\'t send order #123", or "skip the order on [date]". CRITICAL WORKFLOW: 1) ALWAYS call list_upcoming_orders IMMEDIATELY before this tool to get the current order_id (order IDs change after each skip/unskip operation), 2) Use the fresh order_id from that response, 3) Confirm intent with customer. IMPORTANT: Never use old/cached order IDs - they become invalid after operations. Extract the "order_id" field from the fresh list_upcoming_orders response. NEXT STEPS: Inform customer they can reverse using unskip_order.',
             inputSchema: {
               type: 'object',
               properties: {
                 order_id: {
                   type: 'integer',
                   minimum: 1,
-                  description: 'Order ID from upcoming/past orders list. NOTE: Use the "id" field from the API response, NOT the "billingAttemptId" field (which is always null).'
+                  description: 'Order ID from FRESH upcoming orders list (call list_upcoming_orders immediately before this). CRITICAL: Order IDs change after each operation - never use cached/old IDs. Use the "order_id" field from the fresh response.'
                 },
                 subscription_contract_id: {
                   type: 'integer',
@@ -126,14 +126,14 @@ export function createSimpleServer() {
           },
           {
             name: 'unskip_order',
-            description: 'STEP 4: Use this tool when customers want to restore a previously skipped order. Look for phrases like "unskip order", "restore skipped order", "undo skip", "bring back my order", "I changed my mind about skipping", or "reactivate cancelled order". IMPORTANT: Always confirm intent - ask "Are you sure you want to restore the order for [date]?" PREREQUISITE: order_id from a SKIPPED order (use list_past_orders or list_upcoming_orders to find orders with status=SKIPPED). Extract the "order_id" field. EDGE CASE: If order was already processed/shipped, unskipping may fail.',
+            description: 'STEP 4: Use this tool when customers want to restore a previously skipped order. Look for phrases like "unskip order", "restore skipped order", "undo skip", "bring back my order", "I changed my mind about skipping", or "reactivate cancelled order". CRITICAL WORKFLOW: 1) ALWAYS call list_past_orders IMMEDIATELY before this tool to get the current order_id of SKIPPED orders (order IDs change after each skip/unskip operation), 2) Find orders with status=SKIPPED in the fresh response, 3) Use the fresh order_id, 4) Confirm intent with customer. IMPORTANT: Never use old/cached order IDs - they become invalid after operations. Extract the "order_id" field from the fresh list_past_orders response. EDGE CASE: If order was already processed/shipped, unskipping may fail.',
             inputSchema: {
               type: 'object',
               properties: {
                 order_id: {
                   type: 'integer',
                   minimum: 1,
-                  description: 'Order ID of the skipped order to restore. NOTE: Use the "id" field from the API response, NOT the "billingAttemptId" field (which is always null).'
+                  description: 'Order ID of the skipped order to restore from FRESH past orders list (call list_past_orders immediately before this). CRITICAL: Order IDs change after each operation - never use cached/old IDs. Use the "order_id" field from the fresh response.'
                 },
                 subscription_contract_id: {
                   type: 'integer',
