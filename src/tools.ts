@@ -410,29 +410,6 @@ export function createTools(appstleClient: AppstleClient) {
           responseStructure: JSON.stringify(appstle, null, 2),
         });
         
-        // Temporary: return debug info instead of processing
-        return {
-          _debug_api_call: {
-            url: `PUT /api/external/v2/subscription-billing-attempts/unskip-order/${input.order_id}`,
-            full_url: `${process.env.APPSTLE_API_BASE || 'https://subscription-admin.appstle.com'}/api/external/v2/subscription-billing-attempts/unskip-order/${input.order_id}`,
-            query_params_expected: input.subscription_contract_id ? { subscriptionContractId: input.subscription_contract_id.toString() } : {},
-            headers_sent: {
-              'X-API-Key': '***hidden***',
-              'Content-Type': 'application/json',
-              'Accept': '*/*'
-            },
-            input_received: {
-              order_id: input.order_id,
-              subscription_contract_id: input.subscription_contract_id,
-              subscription_contract_id_type: typeof input.subscription_contract_id,
-              subscription_contract_id_truthy: !!input.subscription_contract_id
-            },
-            api_response_empty: !appstle || Object.keys(appstle).length === 0,
-            api_response_keys: Object.keys(appstle || {}),
-            raw_response: appstle
-          }
-        } as any;
-        
         const result = mapSkipResponse(appstle, false);
         
         logger.info('Successfully unskipped order', {
