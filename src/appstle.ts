@@ -335,6 +335,16 @@ export class AppstleClient {
       'pageable.sort': sort.join(','),
     };
 
+    logger.debug('Making getPastOrders API call', {
+      requestId,
+      contractId,
+      page,
+      size,
+      sort,
+      queryParams: query,
+      endpoint: '/api/external/v2/subscription-billing-attempts/past-orders'
+    });
+
     return this.makeRequest('GET', '/api/external/v2/subscription-billing-attempts/past-orders', {
       query,
       requestId,
