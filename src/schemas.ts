@@ -64,9 +64,14 @@ export const ListUpcomingOrdersOutputSchema = z.object({
 export const ListPastOrdersInputSchema = z.object({
   subscription_contract_id: z.number().int().positive(),
   page: z.number().int().min(0).default(0),
-  size: z.number().int().min(1).max(100).default(10),
+  size: z.number().int().default(10), // Remove min validation here, handle in transform
   sort: z.array(z.string()).default(['id,desc']),
-});
+}).transform((data) => ({
+  ...data,
+  // Ensure size is valid (between 1-100)
+  size: Math.max(1, Math.min(100, data.size || 10)),
+  page: Math.max(0, data.page || 0),
+}));
 
 const PastOrderSchema = z.object({
   order_id: z.number().int().positive(), // This is the 'id' field from Appstle API, not 'billingAttemptId'

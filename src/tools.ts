@@ -177,6 +177,8 @@ export function createTools(appstleClient: AppstleClient) {
         contractId: input.subscription_contract_id,
         page: input.page,
         size: input.size,
+        sort: input.sort,
+        rawInput: JSON.stringify(input),
       });
 
       try {
