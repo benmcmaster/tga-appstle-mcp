@@ -413,10 +413,14 @@ export function createTools(appstleClient: AppstleClient) {
         // Handle empty API response - this likely indicates failure
         if (!appstle || Object.keys(appstle).length === 0) {
           // Empty response likely means the operation failed silently
+          const contractIdMsg = input.subscription_contract_id 
+            ? `(subscription_contract_id ${input.subscription_contract_id} was provided)`
+            : `(try adding subscription_contract_id parameter - use the same one from list_subscriptions_for_customer)`;
+          
           throw new AppstleError(
             400,
             'Unskip Operation Failed',
-            `Unable to unskip order ${input.order_id}. This could be because: 1) Order ID does not exist, 2) Order is not in SKIPPED status, 3) Order cannot be unskipped due to timing constraints, or 4) subscription_contract_id is required but missing.`,
+            `Unable to unskip order ${input.order_id} ${contractIdMsg}. The API returned an empty response, which indicates the operation failed. This could be because: 1) Order ID does not exist, 2) Order is not in SKIPPED status, 3) Order cannot be unskipped due to timing constraints, or 4) The order has already been processed/shipped.`,
             requestId
           );
         }

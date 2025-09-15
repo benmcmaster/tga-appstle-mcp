@@ -388,6 +388,14 @@ export class AppstleClient {
       query.subscriptionContractId = subscriptionContractId.toString();
     }
 
+    logger.debug('Making unskip API call', {
+      requestId,
+      billingAttemptId,
+      subscriptionContractId,
+      endpoint: `/api/external/v2/subscription-billing-attempts/unskip-order/${billingAttemptId}`,
+      queryParams: query
+    });
+
     return this.makeRequest('PUT', `/api/external/v2/subscription-billing-attempts/unskip-order/${billingAttemptId}`, {
       query: Object.keys(query).length > 0 ? query : undefined,
       requestId,
