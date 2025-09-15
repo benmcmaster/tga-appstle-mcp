@@ -177,7 +177,9 @@ export function toUpcomingOrders(appstle: Array<{
     variantTitle?: string;
   }>;
 }>): UpcomingOrder[] {
-  return appstle.map(attempt => mapBillingAttempt(attempt) as UpcomingOrder);
+  return appstle
+    .filter(attempt => attempt.id != null) // Filter out orders without valid IDs
+    .map(attempt => mapBillingAttempt(attempt) as UpcomingOrder);
 }
 
 // Transform Appstle past-orders response
@@ -205,7 +207,9 @@ export function toPastOrders(appstle: any): { past: PastOrder[]; page: number; s
     pageNumber = appstle.number || 0;
   }
   
-  const past = content.map(attempt => mapBillingAttempt(attempt) as PastOrder);
+  const past = content
+    .filter(attempt => attempt.id != null) // Filter out orders without valid IDs
+    .map(attempt => mapBillingAttempt(attempt) as PastOrder);
   
   return {
     past,
