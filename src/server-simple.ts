@@ -70,10 +70,9 @@ export function createSimpleServer() {
                 },
                 size: { 
                   type: 'integer', 
-                  minimum: 1, 
                   maximum: 100, 
                   default: 10,
-                  description: 'Number of orders per page (1-100). Default: 10 orders'
+                  description: 'Number of orders per page (1-100). Default: 10 orders. Invalid values will be corrected automatically.'
                 },
                 sort: { 
                   type: 'array', 
