@@ -87,6 +87,7 @@ export const ListPastOrdersOutputSchema = z.object({
   page: z.number().int().min(0),
   size: z.number().int(), // Removed min validation - size can be 0 if no results
   has_more: z.boolean(),
+  _debug: z.any().optional(), // Temporary debug field for troubleshooting
 });
 
 // 4. skip_upcoming_order_for_contract schemas
