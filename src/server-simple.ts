@@ -113,7 +113,7 @@ export function createSimpleServer() {
                 subscription_contract_id: {
                   type: 'integer',
                   minimum: 1,
-                  description: 'Optional: Subscription contract ID from list_subscriptions_for_customer (some Appstle tenants require this)'
+                  description: 'Optional: Subscription contract ID from list_subscriptions_for_customer (recommended for reliability, required by some Appstle tenants)'
                 },
                 is_prepaid: {
                   type: 'boolean',

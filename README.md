@@ -175,6 +175,30 @@ List past billing attempts with pagination.
 }
 ```
 
+**Output:**
+```json
+{
+  "past": [
+    {
+      "order_id": 456789,
+      "billing_attempt_ref": "gid://shopify/SubscriptionBillingAttempt/64100761890",
+      "shopify_order_id": 6511605252386,
+      "order_name": "#1627",
+      "billing_date": "2025-01-07T05:38:50Z",
+      "status": "SUCCESS"
+    },
+    {
+      "order_id": 456790,
+      "billing_date": "2025-01-13T01:00:01Z",
+      "status": "SKIPPED"
+    }
+  ],
+  "page": 0,
+  "size": 10,
+  "has_more": false
+}
+```
+
 ### 4. `skip_upcoming_order_for_contract`
 
 Skip the next upcoming billing attempt for a contract.
@@ -197,30 +221,82 @@ Skip the next upcoming billing attempt for a contract.
 }
 ```
 
-### 5. `skip_billing_attempt`
+### 5. `skip_order`
 
-Skip a specific billing attempt by ID.
+Skip a specific order by ID. **CRITICAL**: Order IDs change after each skip/unskip operation - always get fresh IDs from `list_upcoming_orders` immediately before calling this tool.
 
 **Input:**
 ```json
 {
-  "billing_attempt_id": 456789,
+  "order_id": 456789,
   "subscription_contract_id": 123456789,
   "is_prepaid": false
 }
 ```
 
-### 6. `unskip_billing_attempt`
+**Output:**
+```json
+{
+  "order_id": 456789,
+  "billing_date": "2025-01-15T10:00:00Z",
+  "status": "SKIPPED",
+  "message": "Order skipped"
+}
+```
 
-Unskip a previously skipped billing attempt.
+### 6. `unskip_order`
+
+Restore a previously skipped order. **CRITICAL**: Both `order_id` AND `subscription_contract_id` are required. Order IDs change after each operation - always get fresh IDs from `list_past_orders` immediately before calling this tool.
 
 **Input:**
 ```json
 {
-  "billing_attempt_id": 456789,
+  "order_id": 456789,
   "subscription_contract_id": 123456789
 }
 ```
+
+**Output:**
+```json
+{
+  "order_id": 456789,
+  "billing_date": "2025-01-15T10:00:00Z",
+  "status": "SKIPPED",
+  "message": "Order unskipped"
+}
+```
+
+## 🚨 Critical Workflow Requirements for Fin AI
+
+### Dynamic Order IDs - Most Important Concept
+
+**CRITICAL**: Order IDs change every time a skip/unskip operation is performed. This is the most important behavior to understand for successful tool usage.
+
+**Correct Workflow for Skip Operations:**
+1. Call `list_upcoming_orders` to get fresh order IDs
+2. **Immediately** use the `order_id` from step 1 for `skip_order`
+3. **Never** reuse order IDs from previous calls or conversations
+
+**Correct Workflow for Unskip Operations:**
+1. Call `list_past_orders` to get current SKIPPED order IDs  
+2. **Immediately** use both `order_id` AND `subscription_contract_id` for `unskip_order`
+3. **Never** reuse order IDs from previous calls or conversations
+
+**Why This Matters:**
+- Using stale/cached order IDs will result in empty API responses and failed operations
+- Each skip/unskip creates a new billing attempt with a new ID
+- The old ID becomes invalid and cannot be used
+
+### Required Parameters Summary
+
+| Tool | Required Parameters | Optional Parameters |
+|------|-------------------|-------------------|
+| `list_subscriptions_for_customer` | `shopify_customer_id` | `cursor` |
+| `list_upcoming_orders` | `subscription_contract_id` | - |
+| `list_past_orders` | `subscription_contract_id` | `page`, `size`, `sort` |
+| `skip_upcoming_order_for_contract` | `subscription_contract_id` | - |
+| `skip_order` | `order_id` | `subscription_contract_id`, `is_prepaid` |
+| `unskip_order` | `order_id`, `subscription_contract_id` | - |
 
 ## Intercom Fin Integration
 
@@ -291,8 +367,9 @@ curl -X POST https://your-deployment.vercel.app/api/mcp \
 ### ID Conventions
 
 - **Shopify Customer ID:** Always numeric (e.g., `987654321`), never GID format
-- **Contract ID:** Parse from Shopify GID `gid://shopify/SubscriptionContract/123456789` → `123456789`
-- **Billing Attempt ID:** Use the numeric `id` field from Appstle responses, not `orderId`
+- **Subscription Contract ID:** Parse from Shopify GID `gid://shopify/SubscriptionContract/123456789` → `123456789`
+- **Order ID:** Use the numeric `id` field from Appstle API responses (mapped to `order_id` in our tools)
+- **Dynamic Behavior:** Order IDs change after each skip/unskip operation - always fetch fresh IDs
 
 ### Authentication
 
