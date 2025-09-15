@@ -338,6 +338,13 @@ export function createTools(appstleClient: AppstleClient) {
           requestId
         );
         
+        // Debug log the raw API response
+        logger.debug('Raw Appstle skip response', {
+          requestId,
+          responseKeys: Object.keys(appstle || {}),
+          responseStructure: JSON.stringify(appstle, null, 2),
+        });
+        
         const result = mapSkipResponse(appstle, true);
         
         logger.info('Successfully skipped order', {
@@ -395,6 +402,13 @@ export function createTools(appstleClient: AppstleClient) {
           input.subscription_contract_id,
           requestId
         );
+        
+        // Debug log the raw API response
+        logger.debug('Raw Appstle unskip response', {
+          requestId,
+          responseKeys: Object.keys(appstle || {}),
+          responseStructure: JSON.stringify(appstle, null, 2),
+        });
         
         const result = mapSkipResponse(appstle, false);
         
