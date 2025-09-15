@@ -103,13 +103,18 @@ describe('schema validation', () => {
             plan_name: 'Weekly Plan',
             next_billing_date: '2025-01-15T10:00:00Z',
             items_summary: 'Premium Dog Food',
-            created_at: '2024-12-01T10:00:00Z'
+            created_at: '2024-12-01T10:00:00Z',
+            can_skip_orders: true,
+            upcoming_orders_count: 1,
+            suggested_next_action: 'Call list_upcoming_orders with subscription_contract_id: 123456789'
           }
         ],
         page_info: {
           has_next_page: false,
           end_cursor: 'cursor123'
-        }
+        },
+        active_subscription_count: 1,
+        workflow_guidance: 'Customer has 1 active subscription'
       };
 
       const result = ListSubscriptionsForCustomerOutputSchema.parse(validOutput);
@@ -124,12 +129,17 @@ describe('schema validation', () => {
             subscription_contract_gid: 'gid://shopify/SubscriptionContract/123456789',
             status: 'ACTIVE',
             plan_name: 'Weekly Plan',
-            next_billing_date: '2025-01-15T10:00:00Z'
+            next_billing_date: '2025-01-15T10:00:00Z',
+            can_skip_orders: true,
+            upcoming_orders_count: 0,
+            suggested_next_action: 'Call list_upcoming_orders with subscription_contract_id: 123456789'
           }
         ],
         page_info: {
           has_next_page: false
-        }
+        },
+        active_subscription_count: 1,
+        workflow_guidance: 'Customer has 1 active subscription'
       };
 
       const result = ListSubscriptionsForCustomerOutputSchema.parse(minimalOutput);

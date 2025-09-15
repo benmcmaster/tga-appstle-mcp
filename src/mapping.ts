@@ -70,8 +70,13 @@ export function toSubscriptionsSummary(appstle: {
       endCursor?: string;
     };
   };
-}): { subscriptions: Subscription[]; page_info: PageInfo } {
-  const subscriptions: Subscription[] = appstle.subscriptionContracts.edges.map(edge => {
+}): { subscriptions: Subscription[]; page_info: PageInfo; active_subscription_count: number; workflow_guidance: string } {
+  // Filter to only active subscriptions
+  const activeEdges = appstle.subscriptionContracts.edges.filter(edge => 
+    edge.node.status === 'ACTIVE'
+  );
+
+  const subscriptions: Subscription[] = activeEdges.map(edge => {
     const node = edge.node;
     const contractId = parseGidTail(node.id);
     
@@ -104,8 +109,23 @@ export function toSubscriptionsSummary(appstle: {
       next_billing_date: node.nextBillingDate,
       items_summary: itemsSummary || undefined,
       created_at: node.createdAt || undefined,
+      can_skip_orders: true, // All active subscriptions can skip orders
+      upcoming_orders_count: 1, // Estimate - active subscriptions typically have at least 1 upcoming order
+      suggested_next_action: `Call list_upcoming_orders with subscription_contract_id: ${contractId} to see upcoming orders for this subscription`,
     };
   });
+
+  const activeCount = subscriptions.length;
+  
+  // Generate workflow guidance based on number of active subscriptions
+  let workflowGuidance: string;
+  if (activeCount === 0) {
+    workflowGuidance = "No active subscriptions found. Customer cannot skip orders.";
+  } else if (activeCount === 1) {
+    workflowGuidance = `Customer has 1 active subscription. To skip an order: call list_upcoming_orders with subscription_contract_id: ${subscriptions[0].subscription_contract_id}, then ask customer which order to skip, then call skip_order.`;
+  } else {
+    workflowGuidance = `Customer has ${activeCount} active subscriptions. Ask customer which subscription they want to skip orders for, then call list_upcoming_orders with the chosen subscription_contract_id.`;
+  }
 
   return {
     subscriptions,
@@ -113,6 +133,8 @@ export function toSubscriptionsSummary(appstle: {
       has_next_page: appstle.subscriptionContracts.pageInfo.hasNextPage,
       end_cursor: appstle.subscriptionContracts.pageInfo.endCursor,
     },
+    active_subscription_count: activeCount,
+    workflow_guidance: workflowGuidance,
   };
 }
 

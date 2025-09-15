@@ -104,13 +104,163 @@ describe('mapping utilities', () => {
             plan_name: '2 WEEKs',
             next_billing_date: '2025-01-15T10:00:00Z',
             items_summary: '2x 5kg Bag',
-            created_at: '2024-12-01T10:00:00Z'
+            created_at: '2024-12-01T10:00:00Z',
+            can_skip_orders: true,
+            upcoming_orders_count: 1,
+            suggested_next_action: 'Call list_upcoming_orders with subscription_contract_id: 123456789 to see upcoming orders for this subscription'
           }
         ],
         page_info: {
           has_next_page: true,
           end_cursor: 'cursor123'
+        },
+        active_subscription_count: 1,
+        workflow_guidance: 'Customer has 1 active subscription. To skip an order: call list_upcoming_orders with subscription_contract_id: 123456789, then ask customer which order to skip, then call skip_order.'
+      });
+    });
+
+    test('should filter out inactive subscriptions', () => {
+      const appstleResponseMixed = {
+        subscriptionContracts: {
+          edges: [
+            {
+              node: {
+                id: 'gid://shopify/SubscriptionContract/123456789',
+                status: 'ACTIVE',
+                nextBillingDate: '2025-01-15T10:00:00Z',
+                createdAt: '2024-12-01T10:00:00Z',
+                deliveryPolicy: {
+                  interval: 'WEEK',
+                  intervalCount: 2
+                },
+                lines: {
+                  edges: [
+                    {
+                      node: {
+                        productTitle: '5kg Bag',
+                        variantTitle: null,
+                        quantity: 2
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              node: {
+                id: 'gid://shopify/SubscriptionContract/987654321',
+                status: 'CANCELLED',
+                nextBillingDate: '2025-01-20T10:00:00Z',
+                createdAt: '2024-11-01T10:00:00Z',
+                deliveryPolicy: {
+                  interval: 'MONTH',
+                  intervalCount: 1
+                },
+                lines: {
+                  edges: [
+                    {
+                      node: {
+                        productTitle: '10kg Bag',
+                        variantTitle: null,
+                        quantity: 1
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              node: {
+                id: 'gid://shopify/SubscriptionContract/555666777',
+                status: 'PAUSED',
+                nextBillingDate: '2025-02-01T10:00:00Z',
+                createdAt: '2024-10-01T10:00:00Z',
+                deliveryPolicy: {
+                  interval: 'WEEK',
+                  intervalCount: 1
+                },
+                lines: {
+                  edges: [
+                    {
+                      node: {
+                        productTitle: 'Treats',
+                        variantTitle: null,
+                        quantity: 3
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          pageInfo: {
+            hasNextPage: false,
+            endCursor: null
+          }
         }
+      };
+
+      const result = toSubscriptionsSummary(appstleResponseMixed);
+
+      // Should only return the ACTIVE subscription
+      expect(result).toEqual({
+        subscriptions: [
+          {
+            subscription_contract_id: 123456789,
+            subscription_contract_gid: 'gid://shopify/SubscriptionContract/123456789',
+            status: 'ACTIVE',
+            plan_name: '2 WEEKs',
+            next_billing_date: '2025-01-15T10:00:00Z',
+            items_summary: '2x 5kg Bag',
+            created_at: '2024-12-01T10:00:00Z',
+            can_skip_orders: true,
+            upcoming_orders_count: 1,
+            suggested_next_action: 'Call list_upcoming_orders with subscription_contract_id: 123456789 to see upcoming orders for this subscription'
+          }
+        ],
+        page_info: {
+          has_next_page: false,
+          end_cursor: null
+        },
+        active_subscription_count: 1,
+        workflow_guidance: 'Customer has 1 active subscription. To skip an order: call list_upcoming_orders with subscription_contract_id: 123456789, then ask customer which order to skip, then call skip_order.'
+      });
+    });
+
+    test('should handle no active subscriptions', () => {
+      const appstleResponseInactive = {
+        subscriptionContracts: {
+          edges: [
+            {
+              node: {
+                id: 'gid://shopify/SubscriptionContract/987654321',
+                status: 'CANCELLED',
+                nextBillingDate: '2025-01-20T10:00:00Z',
+                createdAt: '2024-11-01T10:00:00Z',
+                deliveryPolicy: {
+                  interval: 'MONTH',
+                  intervalCount: 1
+                }
+              }
+            }
+          ],
+          pageInfo: {
+            hasNextPage: false,
+            endCursor: null
+          }
+        }
+      };
+
+      const result = toSubscriptionsSummary(appstleResponseInactive);
+
+      expect(result).toEqual({
+        subscriptions: [],
+        page_info: {
+          has_next_page: false,
+          end_cursor: null
+        },
+        active_subscription_count: 0,
+        workflow_guidance: 'No active subscriptions found. Customer cannot skip orders.'
       });
     });
   });

@@ -24,6 +24,9 @@ const SubscriptionSchema = z.object({
   next_billing_date: z.string().datetime(),
   items_summary: z.string().optional(),
   created_at: z.string().datetime().optional(),
+  can_skip_orders: z.boolean(),
+  upcoming_orders_count: z.number().int().min(0),
+  suggested_next_action: z.string(),
 });
 
 const PageInfoSchema = z.object({
@@ -34,6 +37,8 @@ const PageInfoSchema = z.object({
 export const ListSubscriptionsForCustomerOutputSchema = z.object({
   subscriptions: z.array(SubscriptionSchema),
   page_info: PageInfoSchema,
+  active_subscription_count: z.number().int().min(0),
+  workflow_guidance: z.string(),
 });
 
 // 2. list_upcoming_orders schemas
