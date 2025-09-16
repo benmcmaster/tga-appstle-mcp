@@ -252,6 +252,22 @@ export function mapBillingAttempt(attempt: {
   return baseOrder as PastOrder;
 }
 
+// Helper function to format date for customer display
+function formatDateForCustomer(dateString: string): string {
+  try {
+    const date = new Date(dateString);
+    // Format as "September 20, 2025" 
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  } catch {
+    // Fallback to original string if parsing fails
+    return dateString;
+  }
+}
+
 // Transform Appstle top-orders response
 export function toUpcomingOrders(appstle: Array<{
   id: number;
@@ -266,13 +282,25 @@ export function toUpcomingOrders(appstle: Array<{
     productTitle?: string;
     variantTitle?: string;
   }>;
-}>): { upcoming: UpcomingOrder[]; next_step_guidance: NextStepGuidance } {
+}>): { upcoming: UpcomingOrder[]; next_step_guidance: NextStepGuidance; selection_map: Array<{ selection_number: number; order_id: number; billing_date: string }> } {
   const upcoming = appstle
     .filter(attempt => attempt.id != null) // Filter out orders without valid IDs
     .map(attempt => mapBillingAttempt(attempt) as UpcomingOrder);
     
+  // Build selection map for numbered choices
+  const selection_map = upcoming.map((order, index) => ({
+    selection_number: index + 1,
+    order_id: order.order_id,
+    billing_date: order.billing_date
+  }));
+  
+  // Build numbered selection prompt for customer
+  const selectionOptions = upcoming.map((order, index) => 
+    `${index + 1}. ${formatDateForCustomer(order.billing_date)} (Order ID: ${order.order_id})`
+  ).join('\n');
+  
   const next_step_guidance: NextStepGuidance = {
-    ask_customer: "Which delivery date would you like to skip?",
+    ask_customer: `Which delivery would you like to skip? Please select by number:\n\n${selectionOptions}\n\nReply with the number (1, 2, 3, etc.) and I'll skip that specific order.`,
     show_options: true,
     save_parameter: "order_id",
     next_tool: "skip_order",
@@ -281,7 +309,8 @@ export function toUpcomingOrders(appstle: Array<{
   
   return {
     upcoming,
-    next_step_guidance
+    next_step_guidance,
+    selection_map
   };
 }
 

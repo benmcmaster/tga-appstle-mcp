@@ -107,7 +107,11 @@ describe('mapping utilities', () => {
             created_at: '2024-12-01T10:00:00Z',
             can_skip_orders: true,
             upcoming_orders_count: 1,
-            suggested_next_action: 'Call list_upcoming_orders with subscription_contract_id: 123456789 to see upcoming orders for this subscription'
+            suggested_next_action: 'Call list_upcoming_orders with subscription_contract_id: 123456789 to see upcoming orders for this subscription',
+            subscription_number: 1,
+            protein_substitution: undefined,
+            allergies: undefined,
+            origin_order_name: undefined
           }
         ],
         page_info: {
@@ -115,7 +119,14 @@ describe('mapping utilities', () => {
           end_cursor: 'cursor123'
         },
         active_subscription_count: 1,
-        workflow_guidance: 'Customer has 1 active subscription. To skip an order: call list_upcoming_orders with subscription_contract_id: 123456789, then ask customer which order to skip, then call skip_order.'
+        workflow_guidance: 'Customer has 1 active subscription. To skip an order: call list_upcoming_orders with subscription_contract_id: 123456789, then ask customer which order to skip, then call skip_order.',
+        next_step_guidance: {
+          ask_customer: "I found your subscription. Let me check your upcoming deliveries.",
+          show_options: false,
+          save_parameter: "subscription_contract_id",
+          next_tool: "list_upcoming_orders",
+          condition: "SKIP_CUSTOMER_CHOICE"
+        }
       });
     });
 
@@ -215,7 +226,11 @@ describe('mapping utilities', () => {
             created_at: '2024-12-01T10:00:00Z',
             can_skip_orders: true,
             upcoming_orders_count: 1,
-            suggested_next_action: 'Call list_upcoming_orders with subscription_contract_id: 123456789 to see upcoming orders for this subscription'
+            suggested_next_action: 'Call list_upcoming_orders with subscription_contract_id: 123456789 to see upcoming orders for this subscription',
+            subscription_number: 1,
+            protein_substitution: undefined,
+            allergies: undefined,
+            origin_order_name: undefined
           }
         ],
         page_info: {
@@ -223,7 +238,14 @@ describe('mapping utilities', () => {
           end_cursor: null
         },
         active_subscription_count: 1,
-        workflow_guidance: 'Customer has 1 active subscription. To skip an order: call list_upcoming_orders with subscription_contract_id: 123456789, then ask customer which order to skip, then call skip_order.'
+        workflow_guidance: 'Customer has 1 active subscription. To skip an order: call list_upcoming_orders with subscription_contract_id: 123456789, then ask customer which order to skip, then call skip_order.',
+        next_step_guidance: {
+          ask_customer: "I found your subscription. Let me check your upcoming deliveries.",
+          show_options: false,
+          save_parameter: "subscription_contract_id",
+          next_tool: "list_upcoming_orders",
+          condition: "SKIP_CUSTOMER_CHOICE"
+        }
       });
     });
 
@@ -260,7 +282,13 @@ describe('mapping utilities', () => {
           end_cursor: null
         },
         active_subscription_count: 0,
-        workflow_guidance: 'No active subscriptions found. Customer cannot skip orders.'
+        workflow_guidance: 'No active subscriptions found. Customer cannot skip orders.',
+        next_step_guidance: {
+          ask_customer: "You don't have any active subscriptions to manage.",
+          show_options: false,
+          save_parameter: "none",
+          next_tool: "none"
+        }
       });
     });
   });

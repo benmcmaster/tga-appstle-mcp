@@ -168,12 +168,24 @@ The server exposes 4 streamlined tools for subscription management, optimized fo
     }
   ],
   "next_step_guidance": {
-    "ask_customer": "Which delivery date would you like to skip?",
+    "ask_customer": "Which delivery would you like to skip? Please select by number:\n\n1. January 15, 2025 (Order ID: 789012)\n2. January 22, 2025 (Order ID: 789013)\n\nReply with the number (1, 2, 3, etc.) and I'll skip that specific order.",
     "show_options": true,
     "save_parameter": "order_id",
     "next_tool": "skip_order",
     "condition": "ALWAYS_ASK"
-  }
+  },
+  "selection_map": [
+    {
+      "selection_number": 1,
+      "order_id": 789012,
+      "billing_date": "2025-01-15T10:00:00Z"
+    },
+    {
+      "selection_number": 2,
+      "order_id": 789013,
+      "billing_date": "2025-01-22T10:00:00Z"
+    }
+  ]
 }
 ```
 
@@ -296,8 +308,8 @@ For each tool, create a Data connector with these configurations:
 
 **list_upcoming_orders:**
 - Input mapping: `subscription_contract_id` → "Let Fin decide" 
-- Data access label: `{{billing_date}} • {{order_name}} • {{status}}`
-- Hidden fields: `billing_attempt_id`, `order_id`
+- Data access: Allow access to all fields including `order_id` and `selection_map`
+- Note: The response includes numbered selection guidance and order ID mapping for reliable customer choice handling
 
 **Skip Actions:**
 - Wrap in Fin Tasks for confirmation prompts

@@ -76,9 +76,16 @@ const UpcomingOrderSchema = z.object({
   items: z.array(OrderItemSchema).optional(),
 });
 
+const SelectionMapSchema = z.object({
+  selection_number: z.number().int().positive(),
+  order_id: z.number().int().positive(),
+  billing_date: z.string().datetime(),
+});
+
 export const ListUpcomingOrdersOutputSchema = z.object({
   upcoming: z.array(UpcomingOrderSchema),
   next_step_guidance: NextStepGuidanceSchema,
+  selection_map: z.array(SelectionMapSchema),
 });
 
 // 3. list_past_orders schemas
