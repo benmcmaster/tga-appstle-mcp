@@ -10,6 +10,15 @@ const ErrorSchema = z.object({
   }),
 });
 
+// Next step guidance schema for helping Fin navigate workflows
+const NextStepGuidanceSchema = z.object({
+  ask_customer: z.string(),                    // Exact question to ask the customer
+  show_options: z.boolean(),                   // Whether to show a list of options
+  save_parameter: z.string(),                  // Which field value to save for next tool
+  next_tool: z.string(),                       // Which tool to call next
+  condition: z.string().optional(),            // When to use this guidance (SKIP_CUSTOMER_CHOICE, WAIT_FOR_CUSTOMER_CHOICE, ALWAYS_ASK)
+});
+
 // 1. list_subscriptions_for_customer schemas
 export const ListSubscriptionsForCustomerInputSchema = z.object({
   shopify_customer_id: z.number().int().positive(),
@@ -39,6 +48,7 @@ export const ListSubscriptionsForCustomerOutputSchema = z.object({
   page_info: PageInfoSchema,
   active_subscription_count: z.number().int().min(0),
   workflow_guidance: z.string(),
+  next_step_guidance: NextStepGuidanceSchema,
 });
 
 // 2. list_upcoming_orders schemas
@@ -63,6 +73,7 @@ const UpcomingOrderSchema = z.object({
 
 export const ListUpcomingOrdersOutputSchema = z.object({
   upcoming: z.array(UpcomingOrderSchema),
+  next_step_guidance: NextStepGuidanceSchema,
 });
 
 // 3. list_past_orders schemas
@@ -94,23 +105,7 @@ export const ListPastOrdersOutputSchema = z.object({
   has_more: z.boolean(),
 });
 
-// 4. skip_upcoming_order_for_contract schemas
-export const SkipUpcomingOrderForContractInputSchema = z.object({
-  subscription_contract_id: z.number().int().positive(),
-});
-
-export const SkipUpcomingOrderForContractOutputSchema = z.object({
-  skipped: z.literal(true),
-  order_id: z.number().int().positive(), // This is the 'id' field from Appstle API
-  billing_attempt_ref: z.string().optional(), // This is 'billingAttemptId' from API
-  shopify_order_id: z.number().int().optional(), // This is 'orderId' from API
-  order_name: z.string().optional(),
-  billing_date: z.string().datetime(),
-  status: z.string(),
-  message: z.string().optional(),
-});
-
-// 5. skip_order schemas
+// 4. skip_order schemas
 export const SkipOrderInputSchema = z.object({
   order_id: z.number().int().positive(), // This is the 'id' field from top-orders/past-orders
   subscription_contract_id: z.number().int().positive().optional(),
@@ -125,26 +120,11 @@ export const SkipOrderOutputSchema = z.object({
   billing_date: z.string().datetime(),
   status: z.string(),
   message: z.string().default('Order skipped'),
+  next_step_guidance: NextStepGuidanceSchema,
 });
 
-// 6. unskip_order schemas
-export const UnskipOrderInputSchema = z.object({
-  order_id: z.number().int().positive(), // This is the 'id' field from top-orders/past-orders
-  subscription_contract_id: z.number().int().positive().optional(),
-});
-
-export const UnskipOrderOutputSchema = z.object({
-  order_id: z.number().int().positive(),
-  billing_attempt_ref: z.string().optional(),
-  shopify_order_id: z.number().int().optional(),
-  order_name: z.string().optional(),
-  billing_date: z.string().datetime(),
-  status: z.string(),
-  message: z.string().default('Order unskipped'),
-});
-
-// Export error schema
-export { ErrorSchema };
+// Export error schema and guidance schema
+export { ErrorSchema, NextStepGuidanceSchema };
 
 // TypeScript types
 export type ListSubscriptionsForCustomerInput = z.infer<typeof ListSubscriptionsForCustomerInputSchema>;
@@ -156,16 +136,13 @@ export type ListUpcomingOrdersOutput = z.infer<typeof ListUpcomingOrdersOutputSc
 export type ListPastOrdersInput = z.infer<typeof ListPastOrdersInputSchema>;
 export type ListPastOrdersOutput = z.infer<typeof ListPastOrdersOutputSchema>;
 
-export type SkipUpcomingOrderForContractInput = z.infer<typeof SkipUpcomingOrderForContractInputSchema>;
-export type SkipUpcomingOrderForContractOutput = z.infer<typeof SkipUpcomingOrderForContractOutputSchema>;
-
 export type SkipOrderInput = z.infer<typeof SkipOrderInputSchema>;
 export type SkipOrderOutput = z.infer<typeof SkipOrderOutputSchema>;
 
-export type UnskipOrderInput = z.infer<typeof UnskipOrderInputSchema>;
-export type UnskipOrderOutput = z.infer<typeof UnskipOrderOutputSchema>;
-
 export type ErrorOutput = z.infer<typeof ErrorSchema>;
+
+// Guidance and workflow types
+export type NextStepGuidance = z.infer<typeof NextStepGuidanceSchema>;
 
 // Subscription item for internal use
 export type Subscription = z.infer<typeof SubscriptionSchema>;

@@ -124,33 +124,6 @@ export function createMcpServer(config: ServerConfig = { name: 'Appstle Subscrip
       }
     });
 
-    // Register tool: skip_upcoming_order_for_contract
-    server.addTool({
-      name: 'skip_upcoming_order_for_contract',
-      description: 'Skip the next upcoming billing attempt for a subscription contract',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          subscription_contract_id: {
-            type: 'integer',
-            minimum: 1,
-            description: 'Numeric Contract ID to skip the next upcoming billing attempt.'
-          }
-        },
-        required: ['subscription_contract_id']
-      }
-    }, async (args) => {
-      const requestId = logger.generateRequestId();
-      try {
-        return await tools.skip_upcoming_order_for_contract(args, requestId);
-      } catch (error) {
-        if (error instanceof AppstleError) {
-          throw error.toErrorOutput();
-        }
-        throw error;
-      }
-    });
-
     // Register tool: skip_billing_attempt
     server.addTool({
       name: 'skip_billing_attempt',
@@ -188,40 +161,8 @@ export function createMcpServer(config: ServerConfig = { name: 'Appstle Subscrip
       }
     });
 
-    // Register tool: unskip_billing_attempt
-    server.addTool({
-      name: 'unskip_billing_attempt',
-      description: 'Unskip a previously skipped billing attempt by ID',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          billing_attempt_id: {
-            type: 'integer',
-            minimum: 1,
-            description: 'Numeric billing attempt id to unskip.'
-          },
-          subscription_contract_id: {
-            type: 'integer',
-            minimum: 1,
-            description: 'Optional contract id if required by your Appstle tenant.'
-          }
-        },
-        required: ['billing_attempt_id']
-      }
-    }, async (args) => {
-      const requestId = logger.generateRequestId();
-      try {
-        return await tools.unskip_billing_attempt(args, requestId);
-      } catch (error) {
-        if (error instanceof AppstleError) {
-          throw error.toErrorOutput();
-        }
-        throw error;
-      }
-    });
-
     logger.info('MCP server created successfully', { 
-      toolCount: 6,
+      toolCount: 4,
       serverName: config.name,
       serverVersion: config.version
     });

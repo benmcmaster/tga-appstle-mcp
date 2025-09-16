@@ -10,7 +10,7 @@ export function createSimpleServer() {
     const tools = createTools(appstleClient);
 
     logger.info('Simple MCP server created successfully', { 
-      toolCount: 6,
+      toolCount: 4,
     });
 
     return {
@@ -19,7 +19,7 @@ export function createSimpleServer() {
         return [
           {
             name: 'list_subscriptions_for_customer',
-            description: 'STEP 1: Use this tool when customers ask about their subscription contracts, active subscriptions, or subscription status. Look for phrases like "my subscriptions", "what subscriptions do I have", "subscription status", "active plans", or "membership details". PREREQUISITE: You must have the customer\'s numeric Shopify Customer ID (not a GID). If missing, ask the customer to provide it. RETURNS: This tool returns subscription details including subscription_contract_id values needed for all other order management tools.',
+            description: 'STEP 1 of skip workflow: Gets all customer subscriptions. Use when customers mention: "skip delivery", "pause order", "hold shipment", "subscription status", or "my subscriptions". CRITICAL WORKFLOW: Check the response\'s next_step_guidance field! IF condition=SKIP_CUSTOMER_CHOICE (1 subscription): Proceed directly to list_upcoming_orders using the subscription_contract_id. IF condition=WAIT_FOR_CUSTOMER_CHOICE (multiple subscriptions): ASK customer "Which subscription would you like to manage?" and show subscription plan names. Wait for their response before proceeding. PREREQUISITE: Numeric Shopify Customer ID (not GID). SAVES: subscription_contract_id for next step.',
             inputSchema: {
               type: 'object',
               properties: {
@@ -38,7 +38,7 @@ export function createSimpleServer() {
           },
           {
             name: 'list_upcoming_orders',
-            description: 'STEP 2: Use this tool when customers ask about upcoming orders, next deliveries, or scheduled shipments. Look for phrases like "when is my next order", "upcoming deliveries", "next shipment", "future orders", or "what\'s coming next". PREREQUISITE: You must have subscription_contract_id from list_subscriptions_for_customer (STEP 1). If missing, call STEP 1 first. RETURNS: List of upcoming orders, each with an order_id field (use this for skip_order tool) and order details for customer confirmation.',
+            description: 'STEP 2 of skip workflow: Gets upcoming deliveries for a subscription. Use after list_subscriptions_for_customer when you have a subscription_contract_id. WORKFLOW: Check the response\'s next_step_guidance field! The guidance will ALWAYS say condition=ALWAYS_ASK. You MUST ASK the customer "Which delivery date would you like to skip?" and show them the list of upcoming delivery dates from the response. SAVES: order_id from the customer\'s chosen date for use in skip_order. PREREQUISITE: subscription_contract_id from STEP 1.',
             inputSchema: {
               type: 'object',
               properties: {
@@ -53,7 +53,7 @@ export function createSimpleServer() {
           },
           {
             name: 'list_past_orders',
-            description: 'STEP 2: Use this tool when customers ask about order history, past deliveries, or previous shipments. Look for phrases like "order history", "past orders", "previous deliveries", "what orders have been sent", or "delivery history". PREREQUISITE: You must have subscription_contract_id from list_subscriptions_for_customer (STEP 1). If missing, call STEP 1 first. RETURNS: List of past orders with order_id field (use this for unskip_order tool if order status is SKIPPED). Use pagination for large histories.',
+            description: 'Use this tool when customers ask about order history, past deliveries, or previous shipments. Look for phrases like "order history", "past orders", "previous deliveries", "what orders have been sent", or "delivery history". Shows previous orders including skipped ones for viewing only. PREREQUISITE: subscription_contract_id from list_subscriptions_for_customer. NOTE: To restore a skipped delivery, direct customer to their portal at account.thegourmetanimal.com where they can easily unskip from the History tab.',
             inputSchema: {
               type: 'object',
               properties: {
@@ -85,35 +85,20 @@ export function createSimpleServer() {
             }
           },
           {
-            name: 'skip_upcoming_order_for_contract',
-            description: 'STEP 3A: Use this tool when customers want to skip their NEXT upcoming order (without seeing the order details first). Look for phrases like "skip next order", "skip next delivery", "pause next shipment", "don\'t send next order", or "hold next delivery". IMPORTANT: Always confirm intent - ask "Are you sure you want to skip your next order on [date]?" PREREQUISITE: subscription_contract_id from STEP 1. ALTERNATIVE: If customer wants to see order details first, use list_upcoming_orders (STEP 2) then skip_order (STEP 3B). NEXT STEPS: Inform customer they can undo using unskip_order.',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                subscription_contract_id: {
-                  type: 'integer',
-                  minimum: 1,
-                  description: 'Subscription contract ID from list_subscriptions_for_customer response (subscription_contract_id field)'
-                }
-              },
-              required: ['subscription_contract_id']
-            }
-          },
-          {
             name: 'skip_order',
-            description: 'STEP 3B: Use this tool when customers want to skip a SPECIFIC order after seeing order details. Look for phrases like "skip this order", "cancel this delivery", "don\'t send order #123", or "skip the order on [date]". CRITICAL WORKFLOW: 1) ALWAYS call list_upcoming_orders IMMEDIATELY before this tool to get the current order_id (order IDs change after each skip/unskip operation), 2) Use the fresh order_id from that response, 3) Confirm intent with customer. IMPORTANT: Never use old/cached order IDs - they become invalid after operations. Extract the "order_id" field from the fresh list_upcoming_orders response. NEXT STEPS: Inform customer they can reverse using unskip_order.',
+            description: 'STEP 3 of skip workflow: Executes the skip delivery. Use after list_upcoming_orders when customer selects a date to skip. CRITICAL WORKFLOW: 1) You MUST have fresh order_id from list_upcoming_orders response (Step 2), 2) You MUST CONFIRM with customer before executing: "Shall I skip your delivery on [date]?", 3) Only proceed after customer says yes/confirm/correct. IMPORTANT: Use the exact order_id from the customer\'s selected date in Step 2. Include subscription_contract_id for reliability. FINAL STEP: Inform customer the skip was successful and they can undo it if needed.',
             inputSchema: {
               type: 'object',
               properties: {
                 order_id: {
                   type: 'integer',
                   minimum: 1,
-                  description: 'Order ID from FRESH upcoming orders list (call list_upcoming_orders immediately before this). CRITICAL: Order IDs change after each operation - never use cached/old IDs. Use the "order_id" field from the fresh response.'
+                  description: 'Order ID from customer\'s selected date in list_upcoming_orders response. Use the exact order_id that corresponds to the date they chose.'
                 },
                 subscription_contract_id: {
                   type: 'integer',
                   minimum: 1,
-                  description: 'Optional: Subscription contract ID from list_subscriptions_for_customer (recommended for reliability, required by some Appstle tenants)'
+                  description: 'Subscription contract ID from Step 1 (list_subscriptions_for_customer). Include for reliability.'
                 },
                 is_prepaid: {
                   type: 'boolean',
@@ -122,26 +107,6 @@ export function createSimpleServer() {
                 }
               },
               required: ['order_id']
-            }
-          },
-          {
-            name: 'unskip_order',
-            description: 'STEP 4: Use this tool when customers want to restore a previously skipped order. Look for phrases like "unskip order", "restore skipped order", "undo skip", "bring back my order", "I changed my mind about skipping", or "reactivate cancelled order". CRITICAL WORKFLOW: 1) ALWAYS call list_past_orders IMMEDIATELY before this tool to get the current order_id of SKIPPED orders (order IDs change after each skip/unskip operation), 2) Find orders with status=SKIPPED in the fresh response, 3) Use the fresh order_id, 4) Get subscription_contract_id from list_subscriptions_for_customer (REQUIRED), 5) Confirm intent with customer. IMPORTANT: Never use old/cached order IDs - they become invalid after operations. Both order_id AND subscription_contract_id are required for unskip operations to work.',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                order_id: {
-                  type: 'integer',
-                  minimum: 1,
-                  description: 'Order ID of the skipped order to restore from FRESH past orders list (call list_past_orders immediately before this). CRITICAL: Order IDs change after each operation - never use cached/old IDs. Use the "order_id" field from the fresh response.'
-                },
-                subscription_contract_id: {
-                  type: 'integer',
-                  minimum: 1,
-                  description: 'Required: Subscription contract ID from list_subscriptions_for_customer response. This parameter is required for unskip operations to work.'
-                }
-              },
-              required: ['order_id', 'subscription_contract_id']
             }
           }
         ];

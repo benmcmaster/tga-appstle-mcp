@@ -3,7 +3,8 @@ import type {
   UpcomingOrder, 
   PastOrder, 
   OrderItem,
-  PageInfo 
+  PageInfo,
+  NextStepGuidance
 } from './schemas.js';
 
 // Parse Shopify GID to extract numeric ID
@@ -70,7 +71,7 @@ export function toSubscriptionsSummary(appstle: {
       endCursor?: string;
     };
   };
-}): { subscriptions: Subscription[]; page_info: PageInfo; active_subscription_count: number; workflow_guidance: string } {
+}): { subscriptions: Subscription[]; page_info: PageInfo; active_subscription_count: number; workflow_guidance: string; next_step_guidance: NextStepGuidance } {
   // Filter to only active subscriptions
   const activeEdges = appstle.subscriptionContracts.edges.filter(edge => 
     edge.node.status === 'ACTIVE'
@@ -119,12 +120,34 @@ export function toSubscriptionsSummary(appstle: {
   
   // Generate workflow guidance based on number of active subscriptions
   let workflowGuidance: string;
+  let next_step_guidance: NextStepGuidance;
+  
   if (activeCount === 0) {
     workflowGuidance = "No active subscriptions found. Customer cannot skip orders.";
+    next_step_guidance = {
+      ask_customer: "You don't have any active subscriptions to manage.",
+      show_options: false,
+      save_parameter: "none",
+      next_tool: "none"
+    };
   } else if (activeCount === 1) {
     workflowGuidance = `Customer has 1 active subscription. To skip an order: call list_upcoming_orders with subscription_contract_id: ${subscriptions[0].subscription_contract_id}, then ask customer which order to skip, then call skip_order.`;
+    next_step_guidance = {
+      ask_customer: "I found your subscription. Let me check your upcoming deliveries.",
+      show_options: false,
+      save_parameter: "subscription_contract_id",
+      next_tool: "list_upcoming_orders",
+      condition: "SKIP_CUSTOMER_CHOICE"
+    };
   } else {
     workflowGuidance = `Customer has ${activeCount} active subscriptions. Ask customer which subscription they want to skip orders for, then call list_upcoming_orders with the chosen subscription_contract_id.`;
+    next_step_guidance = {
+      ask_customer: "Which subscription would you like to manage?",
+      show_options: true,
+      save_parameter: "subscription_contract_id",
+      next_tool: "list_upcoming_orders",
+      condition: "WAIT_FOR_CUSTOMER_CHOICE"
+    };
   }
 
   return {
@@ -135,6 +158,7 @@ export function toSubscriptionsSummary(appstle: {
     },
     active_subscription_count: activeCount,
     workflow_guidance: workflowGuidance,
+    next_step_guidance: next_step_guidance,
   };
 }
 
@@ -198,10 +222,23 @@ export function toUpcomingOrders(appstle: Array<{
     productTitle?: string;
     variantTitle?: string;
   }>;
-}>): UpcomingOrder[] {
-  return appstle
+}>): { upcoming: UpcomingOrder[]; next_step_guidance: NextStepGuidance } {
+  const upcoming = appstle
     .filter(attempt => attempt.id != null) // Filter out orders without valid IDs
     .map(attempt => mapBillingAttempt(attempt) as UpcomingOrder);
+    
+  const next_step_guidance: NextStepGuidance = {
+    ask_customer: "Which delivery date would you like to skip?",
+    show_options: true,
+    save_parameter: "order_id",
+    next_tool: "skip_order",
+    condition: "ALWAYS_ASK"
+  };
+  
+  return {
+    upcoming,
+    next_step_guidance
+  };
 }
 
 // Transform Appstle past-orders response
@@ -258,7 +295,18 @@ export function mapSkipResponse(appstle: {
   billing_date: string;
   status: string;
   message: string;
+  next_step_guidance: NextStepGuidance;
 } {
+  const next_step_guidance: NextStepGuidance = {
+    ask_customer: isSkip 
+      ? "Your delivery has been successfully skipped. To restore it later, visit account.thegourmetanimal.com → Manage Subscription → select your subscription → See more details → History tab to unskip."
+      : "Your delivery has been successfully restored.",
+    show_options: false,
+    save_parameter: "none",
+    next_tool: "workflow_complete",
+    condition: "COMPLETE"
+  };
+
   return {
     order_id: appstle.id, // The main ID (not billingAttemptId!)
     billing_attempt_ref: appstle.billingAttemptId || undefined,
@@ -267,6 +315,7 @@ export function mapSkipResponse(appstle: {
     billing_date: appstle.billingDate,
     status: appstle.status,
     message: isSkip ? 'Order skipped' : 'Order unskipped',
+    next_step_guidance: next_step_guidance,
   };
 }
 
