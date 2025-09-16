@@ -181,12 +181,12 @@ export function toSubscriptionsSummary(appstle: {
       if (sub.protein_substitution) preferences.push(`No ${sub.protein_substitution}`);
       if (sub.allergies) preferences.push(`${sub.allergies}`);
       const prefStr = preferences.length ? ` (${preferences.join(', ')})` : '';
-      return `Subscription #${sub.subscription_number}${prefStr}`;
+      return `${sub.subscription_number}. Subscription ID ${sub.subscription_contract_id}${prefStr}`;
     }).join('\n');
     
     workflowGuidance = `Customer has ${activeCount} active subscriptions. Ask customer which subscription they want to skip orders for, then call list_upcoming_orders with the chosen subscription_contract_id.`;
     next_step_guidance = {
-      ask_customer: `Which subscription would you like to manage?\n\n${subscriptionSummaries}`,
+      ask_customer: `Which subscription would you like to manage? Please select by number:\n\n${subscriptionSummaries}\n\nReply with the number (1, 2, 3, etc.) and I'll check that subscription's upcoming deliveries.`,
       show_options: true,
       save_parameter: "subscription_contract_id",
       next_tool: "list_upcoming_orders",
