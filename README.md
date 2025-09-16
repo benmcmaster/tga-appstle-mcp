@@ -30,7 +30,7 @@ This MCP server wraps the Appstle Subscriptions API to allow Intercom's Fin AI a
 ├── vercel.json               # Vercel deployment configuration
 ├── vitest.config.ts          # Test configuration
 ├── src/
-│   ├── server.ts             # MCP server bootstrap & tool registry
+│   ├── server-simple.ts      # MCP server implementation & tool registry
 │   ├── transport.ts          # HTTP transport adapter for Vercel
 │   ├── appstle.ts            # Appstle API client with auth & retry logic
 │   ├── schemas.ts            # Zod schemas + TypeScript types
