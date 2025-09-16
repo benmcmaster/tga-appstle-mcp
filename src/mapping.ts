@@ -61,8 +61,15 @@ export function toSubscriptionsSummary(appstle: {
               productTitle?: string;
               variantTitle?: string;
               quantity: number;
+              customAttributes?: Array<{
+                key: string;
+                value: string;
+              }>;
             };
           }>;
+        };
+        originOrder?: {
+          name: string;
         };
       };
     }>;
@@ -77,7 +84,7 @@ export function toSubscriptionsSummary(appstle: {
     edge.node.status === 'ACTIVE'
   );
 
-  const subscriptions: Subscription[] = activeEdges.map(edge => {
+  const subscriptions: Subscription[] = activeEdges.map((edge, index) => {
     const node = edge.node;
     const contractId = parseGidTail(node.id);
     
@@ -88,7 +95,22 @@ export function toSubscriptionsSummary(appstle: {
       planName = `${intervalCount} ${interval}${intervalCount > 1 ? 's' : ''}`;
     }
     
-    // Build items summary
+    // Extract customAttributes from the first line (all lines should have same attributes)
+    let proteinSubstitution: string | undefined;
+    let allergies: string | undefined;
+    let originOrderName: string | undefined;
+    
+    if (node.lines?.edges.length && node.lines.edges[0]?.node?.customAttributes) {
+      const customAttrs = node.lines.edges[0].node.customAttributes;
+      proteinSubstitution = customAttrs.find(attr => attr.key === 'Protein Substitution')?.value;
+      allergies = customAttrs.find(attr => attr.key === 'Allergies')?.value;
+    }
+    
+    if (node.originOrder?.name) {
+      originOrderName = node.originOrder.name;
+    }
+    
+    // Build items summary with preferences
     let itemsSummary = '';
     if (node.lines?.edges.length) {
       const items = node.lines.edges.map(lineEdge => {
@@ -99,6 +121,14 @@ export function toSubscriptionsSummary(appstle: {
       itemsSummary = items.slice(0, 3).join(', ');
       if (items.length > 3) {
         itemsSummary += ` +${items.length - 3} more`;
+      }
+      
+      // Add preferences to items summary for differentiation
+      if (proteinSubstitution || allergies) {
+        const preferences = [];
+        if (proteinSubstitution) preferences.push(`No ${proteinSubstitution}`);
+        if (allergies) preferences.push(`Allergies: ${allergies}`);
+        itemsSummary += ` | ${preferences.join(' | ')}`;
       }
     }
 
@@ -113,6 +143,11 @@ export function toSubscriptionsSummary(appstle: {
       can_skip_orders: true, // All active subscriptions can skip orders
       upcoming_orders_count: 1, // Estimate - active subscriptions typically have at least 1 upcoming order
       suggested_next_action: `Call list_upcoming_orders with subscription_contract_id: ${contractId} to see upcoming orders for this subscription`,
+      // Differentiation fields
+      subscription_number: index + 1,
+      protein_substitution: proteinSubstitution,
+      allergies: allergies,
+      origin_order_name: originOrderName,
     };
   });
 
@@ -140,9 +175,18 @@ export function toSubscriptionsSummary(appstle: {
       condition: "SKIP_CUSTOMER_CHOICE"
     };
   } else {
+    // Build differentiation summary for multiple subscriptions
+    const subscriptionSummaries = subscriptions.map(sub => {
+      const preferences = [];
+      if (sub.protein_substitution) preferences.push(`No ${sub.protein_substitution}`);
+      if (sub.allergies) preferences.push(`${sub.allergies}`);
+      const prefStr = preferences.length ? ` (${preferences.join(', ')})` : '';
+      return `Subscription #${sub.subscription_number}${prefStr}`;
+    }).join('\n');
+    
     workflowGuidance = `Customer has ${activeCount} active subscriptions. Ask customer which subscription they want to skip orders for, then call list_upcoming_orders with the chosen subscription_contract_id.`;
     next_step_guidance = {
-      ask_customer: "Which subscription would you like to manage?",
+      ask_customer: `Which subscription would you like to manage?\n\n${subscriptionSummaries}`,
       show_options: true,
       save_parameter: "subscription_contract_id",
       next_tool: "list_upcoming_orders",

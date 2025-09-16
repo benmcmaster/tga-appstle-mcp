@@ -36,6 +36,11 @@ const SubscriptionSchema = z.object({
   can_skip_orders: z.boolean(),
   upcoming_orders_count: z.number().int().min(0),
   suggested_next_action: z.string(),
+  // Differentiation fields extracted from customAttributes
+  subscription_number: z.number().int().positive(),
+  protein_substitution: z.string().optional(),
+  allergies: z.string().optional(),
+  origin_order_name: z.string().optional(),
 });
 
 const PageInfoSchema = z.object({
