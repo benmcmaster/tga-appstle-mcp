@@ -6,12 +6,12 @@ A production-ready Model Context Protocol (MCP) server that integrates with Apps
 
 This MCP server wraps the Appstle Subscriptions API to allow Intercom's Fin AI agent to help Shopify customers:
 
-- List their subscription contracts
+- List their subscription contracts with intelligent workflow guidance
 - View upcoming and past orders
-- Skip upcoming deliveries
-- Unskip previously skipped orders
+- Skip upcoming deliveries with confirmation
+- Get self-service portal guidance for unskipping deliveries
 
-**Target Use Case:** A customer says "I am out of town next week, please skip my next delivery" in Intercom chat, and Fin can handle the entire flow automatically.
+**Target Use Case:** A customer says "I am out of town next week, please skip my next delivery" in Intercom chat, and Fin can handle the entire flow automatically using a streamlined 4-tool workflow optimized for AI reliability.
 
 ## Architecture
 
@@ -93,11 +93,11 @@ Your MCP server will be available at: `https://your-deployment.vercel.app/api/mc
 
 ## MCP Tools
 
-The server exposes 6 tools for subscription management:
+The server exposes 4 streamlined tools for subscription management, optimized for AI assistant reliability:
 
 ### 1. `list_subscriptions_for_customer`
 
-Retrieve subscription contracts for a Shopify customer.
+**STEP 1 of skip workflow:** Retrieve subscription contracts for a Shopify customer with intelligent workflow guidance.
 
 **Input:**
 ```json
@@ -124,13 +124,22 @@ Retrieve subscription contracts for a Shopify customer.
   "page_info": {
     "has_next_page": false,
     "end_cursor": "cursor123"
+  },
+  "active_subscription_count": 1,
+  "workflow_guidance": "Customer has 1 active subscription. To skip an order: call list_upcoming_orders...",
+  "next_step_guidance": {
+    "ask_customer": "I found your subscription. Let me check your upcoming deliveries.",
+    "show_options": false,
+    "save_parameter": "subscription_contract_id",
+    "next_tool": "list_upcoming_orders",
+    "condition": "SKIP_CUSTOMER_CHOICE"
   }
 }
 ```
 
 ### 2. `list_upcoming_orders`
 
-List upcoming billing attempts for a subscription.
+**STEP 2 of skip workflow:** List upcoming billing attempts for a subscription with selection guidance.
 
 **Input:**
 ```json
@@ -144,9 +153,9 @@ List upcoming billing attempts for a subscription.
 {
   "upcoming": [
     {
-      "billing_attempt_id": 456789,
-      "billing_attempt_ref": "ba_123",
       "order_id": 789012,
+      "billing_attempt_ref": "ba_123",
+      "shopify_order_id": 456789,
       "order_name": "Order #1001",
       "billing_date": "2025-01-15T10:00:00Z",
       "status": "PENDING",
@@ -157,13 +166,20 @@ List upcoming billing attempts for a subscription.
         }
       ]
     }
-  ]
+  ],
+  "next_step_guidance": {
+    "ask_customer": "Which delivery date would you like to skip?",
+    "show_options": true,
+    "save_parameter": "order_id",
+    "next_tool": "skip_order",
+    "condition": "ALWAYS_ASK"
+  }
 }
 ```
 
 ### 3. `list_past_orders`
 
-List past billing attempts with pagination.
+**View order history:** List past billing attempts with pagination. Read-only tool for viewing order history including skipped deliveries.
 
 **Input:**
 ```json
@@ -199,31 +215,9 @@ List past billing attempts with pagination.
 }
 ```
 
-### 4. `skip_upcoming_order_for_contract`
+### 4. `skip_order`
 
-Skip the next upcoming billing attempt for a contract.
-
-**Input:**
-```json
-{
-  "subscription_contract_id": 123456789
-}
-```
-
-**Output:**
-```json
-{
-  "skipped": true,
-  "billing_attempt_id": 456789,
-  "billing_date": "2025-01-15T10:00:00Z",
-  "status": "SKIPPED",
-  "message": "Order skipped"
-}
-```
-
-### 5. `skip_order`
-
-Skip a specific order by ID. **CRITICAL**: Order IDs change after each skip/unskip operation - always get fresh IDs from `list_upcoming_orders` immediately before calling this tool.
+**STEP 3 of skip workflow:** Skip a specific order by ID with customer confirmation and portal guidance.
 
 **Input:**
 ```json
@@ -240,52 +234,39 @@ Skip a specific order by ID. **CRITICAL**: Order IDs change after each skip/unsk
   "order_id": 456789,
   "billing_date": "2025-01-15T10:00:00Z",
   "status": "SKIPPED",
-  "message": "Order skipped"
+  "message": "Order skipped",
+  "next_step_guidance": {
+    "ask_customer": "Your delivery has been successfully skipped. To restore it later, visit account.thegourmetanimal.com → Manage Subscription → select your subscription → See more details → History tab to unskip.",
+    "show_options": false,
+    "save_parameter": "none",
+    "next_tool": "workflow_complete",
+    "condition": "COMPLETE"
+  }
 }
 ```
 
-### 6. `unskip_order`
+## 🚨 Simplified Workflow for Fin AI
 
-Restore a previously skipped order. **CRITICAL**: Both `order_id` AND `subscription_contract_id` are required. Order IDs change after each operation - always get fresh IDs from `list_past_orders` immediately before calling this tool.
+### Streamlined Skip Delivery Workflow
 
-**Input:**
-```json
-{
-  "order_id": 456789,
-  "subscription_contract_id": 123456789
-}
-```
+The MCP server provides a **single, clear workflow path** with built-in guidance to ensure Fin reliability:
 
-**Output:**
-```json
-{
-  "order_id": 456789,
-  "billing_date": "2025-01-15T10:00:00Z",
-  "status": "SKIPPED",
-  "message": "Order unskipped"
-}
-```
+**Complete Skip Workflow (3 Steps):**
+1. **`list_subscriptions_for_customer`** - Gets subscriptions with next-step guidance
+2. **`list_upcoming_orders`** - Shows delivery dates with selection prompt
+3. **`skip_order`** - Executes skip with confirmation and portal guidance
 
-## 🚨 Critical Workflow Requirements for Fin AI
+**Next Step Guidance System:**
+- Each tool response includes `next_step_guidance` field
+- Provides exact instructions for Fin: what to ask, which tool to call next
+- Handles single vs. multiple subscription scenarios automatically
+- Includes condition flags: `SKIP_CUSTOMER_CHOICE`, `WAIT_FOR_CUSTOMER_CHOICE`, `ALWAYS_ASK`
 
-### Dynamic Order IDs - Most Important Concept
-
-**CRITICAL**: Order IDs change every time a skip/unskip operation is performed. This is the most important behavior to understand for successful tool usage.
-
-**Correct Workflow for Skip Operations:**
-1. Call `list_upcoming_orders` to get fresh order IDs
-2. **Immediately** use the `order_id` from step 1 for `skip_order`
-3. **Never** reuse order IDs from previous calls or conversations
-
-**Correct Workflow for Unskip Operations:**
-1. Call `list_past_orders` to get current SKIPPED order IDs  
-2. **Immediately** use both `order_id` AND `subscription_contract_id` for `unskip_order`
-3. **Never** reuse order IDs from previous calls or conversations
-
-**Why This Matters:**
-- Using stale/cached order IDs will result in empty API responses and failed operations
-- Each skip/unskip creates a new billing attempt with a new ID
-- The old ID becomes invalid and cannot be used
+**Customer Self-Service for Unskipping:**
+- No complex unskip tools in MCP server
+- Fin directs customers to: account.thegourmetanimal.com
+- Path: Manage Subscription → Select subscription → See more details → History tab
+- 24/7 availability, no AI coordination required
 
 ### Required Parameters Summary
 
@@ -294,9 +275,7 @@ Restore a previously skipped order. **CRITICAL**: Both `order_id` AND `subscript
 | `list_subscriptions_for_customer` | `shopify_customer_id` | `cursor` |
 | `list_upcoming_orders` | `subscription_contract_id` | - |
 | `list_past_orders` | `subscription_contract_id` | `page`, `size`, `sort` |
-| `skip_upcoming_order_for_contract` | `subscription_contract_id` | - |
 | `skip_order` | `order_id` | `subscription_contract_id`, `is_prepaid` |
-| `unskip_order` | `order_id`, `subscription_contract_id` | - |
 
 ## Intercom Fin Integration
 
